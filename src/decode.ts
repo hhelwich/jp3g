@@ -1,16 +1,24 @@
 import { InvalidJpegError } from './InvalidJpegError'
+import {
+  APP,
+  COM,
+  DQT,
+  DHT,
+  SOF,
+  Jpeg,
+  MARKER_SOI,
+  MARKER_COM,
+  MARKER_DQT,
+  MARKER_DHT,
+  MARKER_SOF0,
+  MARKER_SOS,
+  MARKER_EOI,
+} from './jpeg'
 
 const getUint16 = (data: Uint8Array, offset: number) =>
   (data[offset] << 8) | data[offset + 1]
 
 const isRestartMarker = (marker: number) => 0xd0 <= marker && marker <= 0xd7
-
-const MARKER_SOI = 0xd8 // Start of image
-const MARKER_COM = 0xfe // Comment
-const MARKER_DQT = 0xdb // Define quantization tables
-const MARKER_DHT = 0xc4 // Define huffman table
-const MARKER_SOS = 0xda // Start of scan
-const MARKER_EOI = 0xd9 // End of image
 
 /**
  * Returns true if marker is APP0-APP15 (application-specific data)
@@ -18,18 +26,68 @@ const MARKER_EOI = 0xd9 // End of image
 const isAppMarker = (marker: number) => 0xe0 <= marker && marker <= 0xef
 
 const isMarkerSOF = (marker: number) =>
-  0xc0 <= marker &&
+  MARKER_SOF0 <= marker &&
   marker <= 0xcf &&
   marker !== MARKER_DHT &&
   marker !== 0xc8 /* Reserved */ &&
   marker !== 0xcc /* DAC (Define arithmetic coding conditions) */
 
-export interface Jpeg {
-  struct: {
-    type: number
-    data?: number
-  }[]
-  data: Uint8Array[]
+/**
+ * Split a byte in high and low part
+ */
+const getHiLow = (byte: number) => [byte >> 4, byte & 0xf]
+
+export const decodeAPP = (appType: number, data: Uint8Array): APP => ({
+  type: 'APP',
+  appType,
+  data: data.subarray(2),
+})
+
+export const decodeCOM = (data: Uint8Array): COM => ({
+  type: 'COM',
+  data: data.subarray(2),
+})
+
+export const decodeDQT = (data: Uint8Array): DQT => ({
+  type: 'DQT',
+  data: data.subarray(2),
+})
+
+export const decodeDHT = (data: Uint8Array): DHT => ({
+  type: 'DHT',
+  data: data.subarray(2),
+})
+
+/**
+ * Decode SOF (Start of frame) segment
+ */
+export const decodeSOF = (frameType: number, data: Uint8Array): SOF => {
+  const precision = data[2] // Sample precision in bits (can be 8 or 12)
+  const height = getUint16(data, 3) // Image height in pixels
+  const width = getUint16(data, 5) // Image width in pixels
+  const compCount = data[7] // Number of components in the image
+  let offset = 8
+  const components = []
+  for (let i = 0; i < compCount; i += 1) {
+    // Component identifier
+    // JPEG allows this to be 0 to 255. JFIF restricts it to 1 (Y), 2 (Cb), or 3 (Cr)
+    const id = data[offset++]
+    // The 4 high-order bits specify the horizontal sampling for the component
+    // The 4 low-order bits specify the vertical sampling
+    // Either value can be 1-4 according to the standard
+    const [hs, vs] = getHiLow(data[offset++])
+    // The quantization table identifier for the component. Corresponds to the identifier in a DQT marker. Can be 0, 1, 2, or 3
+    const qId = data[offset++]
+    components.push({ id, hs, vs, qId })
+  }
+  return {
+    type: 'SOF',
+    frameType,
+    precision,
+    width,
+    height,
+    components,
+  }
 }
 
 /**
@@ -44,8 +102,7 @@ export const decode = (jpeg: Uint8Array): Jpeg => {
 
   // The last marker in the file must be an EOI, and it must immediately follow
   // the compressed data of the last scan in the image.
-  const struct: ({ type: number; data?: number })[] = [{ type: MARKER_SOI }]
-  let data: Uint8Array[] = []
+  const result: Jpeg = [{ type: 'SOI' }]
   let segEnd = 2 // End of the current segment
   const { length } = jpeg
 
@@ -68,24 +125,32 @@ export const decode = (jpeg: Uint8Array): Jpeg => {
               continue
             }
             segEnd = offset
-            struct.push({ type: MARKER_SOS, data: data.length })
-            data.push(jpeg.subarray(segStart, segEnd))
+            result.push({ type: 'SOS', data: jpeg.subarray(segStart, segEnd) })
             continue outer
           }
         }
         break
       } else if (byte === MARKER_EOI) {
-        struct.push({ type: byte })
-        return {
-          struct,
-          data,
-        }
+        result.push({ type: 'EOI' })
+        // TODO Add segment if data after EOI
+        return result
       } else {
         const segLength = getUint16(jpeg, offset)
         offset = segEnd = segStart + segLength
-        const dataRef = data.length
-        data.push(jpeg.subarray(segStart, segEnd))
-        struct.push({ type: byte, data: dataRef })
+        const d = jpeg.subarray(segStart, segEnd)
+        if (byte === MARKER_DQT) {
+          result.push(decodeDQT(d))
+        } else if (byte === MARKER_DHT) {
+          result.push(decodeDHT(d))
+        } else if (byte === MARKER_COM) {
+          result.push(decodeCOM(d))
+        } else if (isAppMarker(byte)) {
+          result.push(decodeAPP(byte & 0xf, d))
+        } else if (isMarkerSOF(byte)) {
+          result.push(decodeSOF(byte & 0xf, d))
+        } else {
+          throw new InvalidJpegError('Unknown marker')
+        }
       }
     }
   }
