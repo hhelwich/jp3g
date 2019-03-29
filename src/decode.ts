@@ -45,7 +45,7 @@ export const decodeAPP = (appType: number, data: Uint8Array): APP => ({
 
 export const decodeCOM = (data: Uint8Array): COM => ({
   type: 'COM',
-  data: data.subarray(2),
+  text: String.fromCharCode.apply(null, <any>data.subarray(2)),
 })
 
 export const decodeDQT = (data: Uint8Array): DQT => ({
@@ -116,6 +116,22 @@ export const decode = (jpeg: Uint8Array): Jpeg => {
       // Set segment start after marker so segStart + segLength === segEnd
       const segStart = ++offset
       if (byte === MARKER_SOS) {
+        const headerLength = getUint16(jpeg, offset)
+        offset += 2
+        const componentCount = jpeg[offset++]
+        const components: ({ id: number; dcTbl: number; acTbl: number })[] = []
+        for (let i = 0; i < componentCount; i += 1) {
+          const id = jpeg[offset++]
+          const [dcTbl, acTbl] = getHiLow(jpeg[offset++])
+          components.push({ id, dcTbl, acTbl })
+        }
+        // Next 3 bytes are only used in progressive mode
+        const specStart = jpeg[offset++] // Spectral selection start (0-63)
+        const specEnd = jpeg[offset++] // Spectral selection end (0-63)
+        // Successive approximation (two 4-bit fields, each with a value in the range 0-13)
+        const [ah, al] = getHiLow(jpeg[offset++])
+
+        // offset === segStart + headerLength
         for (; offset < length; offset += 1) {
           byte = jpeg[offset]
           if (byte === 0xff) {
@@ -125,7 +141,15 @@ export const decode = (jpeg: Uint8Array): Jpeg => {
               continue
             }
             segEnd = offset
-            result.push({ type: 'SOS', data: jpeg.subarray(segStart, segEnd) })
+            result.push({
+              type: 'SOS',
+              components,
+              specStart,
+              specEnd,
+              ah,
+              al,
+              data: jpeg.subarray(segStart + headerLength, segEnd),
+            })
             continue outer
           }
         }

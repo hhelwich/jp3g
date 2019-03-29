@@ -1,14 +1,15 @@
 import {
-  Jpeg,
-  Segment,
   MARKER_SOI,
-  MARKER_EOI,
   MARKER_COM,
   MARKER_DQT,
   MARKER_DHT,
   MARKER_SOF0,
-  SOF,
   MARKER_SOS,
+  MARKER_EOI,
+  Jpeg,
+  Segment,
+  SOF,
+  SOS,
 } from './jpeg'
 import { isNode } from './isNode'
 
@@ -23,6 +24,7 @@ const createBuffer = (size: number) =>
   isNode ? Buffer.alloc(size) : new Uint8Array(size)
 
 const sofLength = (sof: SOF) => 4 + 6 + sof.components.length * 3
+const sosLength = (sos: SOS) => sos.components.length * 2 + 8 + sos.data.length
 
 const segmentLength = (segment: Segment): number => {
   switch (segment.type) {
@@ -32,7 +34,7 @@ const segmentLength = (segment: Segment): number => {
     case 'APP':
       return segment.data.length + 4
     case 'COM':
-      return segment.data.length + 4
+      return segment.text.length + 4
     case 'DQT':
       return segment.data.length + 4
     case 'SOF':
@@ -40,7 +42,7 @@ const segmentLength = (segment: Segment): number => {
     case 'DHT':
       return segment.data.length + 4
     case 'SOS':
-      return segment.data.length + 2
+      return sosLength(segment)
   }
 }
 
@@ -61,6 +63,24 @@ const encodeSOF = (segment: SOF, offset: number, buffer: Uint8Array) => {
     buffer[offset++] = component.qId
   }
   return offset
+}
+
+const encodeSOS = (segment: SOS, offset: number, buffer: Uint8Array) => {
+  buffer[offset++] = 0xff
+  buffer[offset++] = MARKER_SOS
+  const length = segment.components.length * 2 + 6
+  setUint16(buffer, offset, length)
+  offset += 2
+  buffer[offset++] = segment.components.length
+  for (const { id, dcTbl, acTbl } of segment.components) {
+    buffer[offset++] = id
+    buffer[offset++] = setHiLow(dcTbl, acTbl)
+  }
+  buffer[offset++] = segment.specStart
+  buffer[offset++] = segment.specEnd
+  buffer[offset++] = setHiLow(segment.ah, segment.al)
+  buffer.set(segment.data, offset)
+  return offset + segment.data.length
 }
 
 const encodeSegment = (
@@ -85,9 +105,12 @@ const encodeSegment = (
     case 'COM': {
       buffer[offset++] = 0xff
       buffer[offset++] = MARKER_COM
-      const length = segment.data.length + 2
-      setUint16(buffer, offset, length)
-      buffer.set(segment.data, offset + 2)
+      const length = segment.text.length
+      setUint16(buffer, offset, length + 2)
+      offset += 2
+      for (let i = 0; i < length; i += 1) {
+        buffer[offset + i] = segment.text.charCodeAt(i)
+      }
       offset += length
       break
     }
@@ -112,12 +135,7 @@ const encodeSegment = (
       break
     }
     case 'SOS': {
-      buffer[offset++] = 0xff
-      buffer[offset++] = MARKER_SOS
-      const length = segment.data.length
-      buffer.set(segment.data, offset)
-      offset += length
-      break
+      return encodeSOS(segment, offset, buffer)
     }
     case 'EOI':
       buffer[offset++] = 0xff

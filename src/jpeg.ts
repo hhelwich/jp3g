@@ -18,7 +18,7 @@ export interface APP {
 
 export interface COM {
   type: 'COM'
-  data: Uint8Array
+  text: string
 }
 
 export interface DQT {
@@ -48,6 +48,11 @@ export interface SOF {
 export interface SOS {
   type: 'SOS'
   data: Uint8Array
+  components: { id: number; dcTbl: number; acTbl: number }[]
+  specStart: number
+  specEnd: number
+  ah: number
+  al: number
 }
 
 export interface EOI {
