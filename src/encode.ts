@@ -8,6 +8,7 @@ import {
   MARKER_EOI,
   Jpeg,
   Segment,
+  DHT,
   SOF,
   SOS,
 } from './jpeg'
@@ -25,6 +26,7 @@ const createBuffer = (size: number) =>
 
 const sofLength = (sof: SOF) => 4 + 6 + sof.components.length * 3
 const sosLength = (sos: SOS) => sos.components.length * 2 + 8 + sos.data.length
+const dhtLength = (dht: DHT) => dht.values.length + 21
 
 const segmentLength = (segment: Segment): number => {
   switch (segment.type) {
@@ -40,10 +42,22 @@ const segmentLength = (segment: Segment): number => {
     case 'SOF':
       return sofLength(segment)
     case 'DHT':
-      return segment.data.length + 4
+      return dhtLength(segment)
     case 'SOS':
       return sosLength(segment)
   }
+}
+
+const encodeDHT = (segment: DHT, offset: number, buffer: Uint8Array) => {
+  buffer[offset++] = 0xff
+  buffer[offset++] = MARKER_DHT
+  setUint16(buffer, offset, dhtLength(segment) - 2)
+  offset += 2
+  buffer[offset++] = setHiLow(segment.cls, segment.id)
+  buffer.set(segment.counts, offset)
+  offset += 16
+  buffer.set(segment.values, offset)
+  return offset + segment.values.length
 }
 
 const encodeSOF = (segment: SOF, offset: number, buffer: Uint8Array) => {
@@ -125,18 +139,10 @@ const encodeSegment = (
     }
     case 'SOF':
       return encodeSOF(segment, offset, buffer)
-    case 'DHT': {
-      buffer[offset++] = 0xff
-      buffer[offset++] = MARKER_DHT
-      const length = segment.data.length + 2
-      setUint16(buffer, offset, length)
-      buffer.set(segment.data, offset + 2)
-      offset += length
-      break
-    }
-    case 'SOS': {
+    case 'DHT':
+      return encodeDHT(segment, offset, buffer)
+    case 'SOS':
       return encodeSOS(segment, offset, buffer)
-    }
     case 'EOI':
       buffer[offset++] = 0xff
       buffer[offset++] = MARKER_EOI

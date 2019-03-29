@@ -28,7 +28,10 @@ export interface DQT {
 
 export interface DHT {
   type: 'DHT'
-  data: Uint8Array
+  cls: number
+  id: number
+  counts: number[]
+  values: number[]
 }
 
 export interface SOF {
