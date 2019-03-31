@@ -1,5 +1,5 @@
 import fs from 'fs'
-import { decode } from './decode'
+import { decode, getDiff } from './decode'
 import { encode } from './encode'
 import { InvalidJpegError } from './InvalidJpegError'
 import jpeg8x8Expected from '../images/8x8'
@@ -10,6 +10,20 @@ const jpegDataAfterEOI = fs.readFileSync('images/8x8-data-after-eoi.jpg')
 const jpegFillBytesBeforeSOI = fs.readFileSync(
   'images/8x8-fill-bytes-before-soi.jpg'
 )
+
+describe('getDiff', () => {
+  it('returns correct result up to bit length 31', () => {
+    expect(getDiff(0, 0)).toBe(0)
+    for (let i = 1; i <= 31; i += 1) {
+      const maxValue = 2 ** i - 1
+      const flipValue = 2 ** (i - 1)
+      expect(getDiff(0, i)).toBe(-maxValue)
+      expect(getDiff(flipValue - 1, i)).toBe(-flipValue)
+      expect(getDiff(flipValue, i)).toBe(flipValue)
+      expect(getDiff(maxValue, i)).toBe(maxValue)
+    }
+  })
+})
 
 describe('decode', () => {
   it('returns correct JPEG structure', () => {
