@@ -2,31 +2,29 @@ import {
   MARKER_SOI,
   MARKER_COM,
   MARKER_DQT,
-  MARKER_DHT,
   MARKER_SOF0,
   MARKER_SOS,
   MARKER_EOI,
   Jpeg,
   Segment,
-  DHT,
   SOF,
   SOS,
 } from './jpeg'
 import { isNode } from './isNode'
+import { getDhtLength, encodeDHT } from './huffman-encode'
 
-const setUint16 = (data: Uint8Array, offset: number, value: number) => {
+export const setUint16 = (data: Uint8Array, offset: number, value: number) => {
   data[offset] = value >> 8
   data[offset + 1] = value & 0xff
 }
 
-const setHiLow = (high: number, low: number) => (high << 4) | low
+export const setHiLow = (high: number, low: number) => (high << 4) | low
 
 const createBuffer = (size: number) =>
   isNode ? Buffer.alloc(size) : new Uint8Array(size)
 
-const sofLength = (sof: SOF) => 4 + 6 + sof.components.length * 3
-const sosLength = (sos: SOS) => sos.components.length * 2 + 8 + sos.data.length
-const dhtLength = (dht: DHT) => dht.values.length + 21
+const getSofLength = (sof: SOF) => 4 + 6 + sof.components.length * 3
+const getSosLength = (sos: SOS) => sos.components.length * 2 + 8 + sos.data.length
 
 const segmentLength = (segment: Segment): number => {
   switch (segment.type) {
@@ -40,30 +38,18 @@ const segmentLength = (segment: Segment): number => {
     case 'DQT':
       return segment.data.length + 4
     case 'SOF':
-      return sofLength(segment)
+      return getSofLength(segment)
     case 'DHT':
-      return dhtLength(segment)
+      return getDhtLength(segment)
     case 'SOS':
-      return sosLength(segment)
+      return getSosLength(segment)
   }
-}
-
-const encodeDHT = (segment: DHT, offset: number, buffer: Uint8Array) => {
-  buffer[offset++] = 0xff
-  buffer[offset++] = MARKER_DHT
-  setUint16(buffer, offset, dhtLength(segment) - 2)
-  offset += 2
-  buffer[offset++] = setHiLow(segment.cls, segment.id)
-  buffer.set(segment.counts, offset)
-  offset += 16
-  buffer.set(segment.values, offset)
-  return offset + segment.values.length
 }
 
 const encodeSOF = (segment: SOF, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = 0xff
   buffer[offset++] = MARKER_SOF0 | segment.frameType
-  setUint16(buffer, offset, sofLength(segment) - 2)
+  setUint16(buffer, offset, getSofLength(segment) - 2)
   offset += 2
   buffer[offset++] = segment.precision
   setUint16(buffer, offset, segment.height)

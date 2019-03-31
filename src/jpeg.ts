@@ -26,12 +26,17 @@ export interface DQT {
   data: Uint8Array
 }
 
+/**
+ * Huffman tree realized as interleaved arrays. The array indices are the code
+ * bits and the number nodes are the 1-byte symbols.
+ */
+export interface HuffmanTree extends Array<HuffmanTree | number> {}
+
 export interface DHT {
   type: 'DHT'
   cls: number
   id: number
-  counts: number[]
-  values: number[]
+  tree: HuffmanTree
 }
 
 export interface SOF {

@@ -3,7 +3,6 @@ import {
   APP,
   COM,
   DQT,
-  DHT,
   SOF,
   Jpeg,
   MARKER_SOI,
@@ -14,6 +13,7 @@ import {
   MARKER_SOS,
   MARKER_EOI,
 } from './jpeg'
+import { decodeDHT } from './huffman-decode';
 
 const getUint16 = (data: Uint8Array, offset: number) =>
   (data[offset] << 8) | data[offset + 1]
@@ -35,7 +35,7 @@ const isMarkerSOF = (marker: number) =>
 /**
  * Split a byte in high and low part
  */
-const getHiLow = (byte: number) => [byte >> 4, byte & 0xf]
+export const getHiLow = (byte: number) => [byte >> 4, byte & 0xf]
 
 export const decodeAPP = (appType: number, data: Uint8Array): APP => ({
   type: 'APP',
@@ -52,23 +52,6 @@ export const decodeDQT = (data: Uint8Array): DQT => ({
   type: 'DQT',
   data: data.subarray(2),
 })
-
-export const decodeDHT = (data: Uint8Array): DHT => {
-  // First byte is ignored (length of the segment)
-  const [cls, id] = getHiLow(data[2])
-  // Get count of Huffman codes of length 1 to 16
-  const counts = Array.from(data.subarray(3, 19))
-  // Get the symbols sorted by Huffman code
-  const valueCount = counts.reduce((sum, count) => sum + count, 0)
-  const values = Array.from(data.subarray(19, 19 + valueCount))
-  return {
-    type: 'DHT',
-    cls,
-    id,
-    counts,
-    values,
-  }
-}
 
 /**
  * Decode SOF (Start of frame) segment
