@@ -44,21 +44,14 @@ export const getHuffmanCodeCounts = (huffmanTable: HuffmanTree) => {
   return { counts, symbols }
 }
 
-/**
- * Return counts of huffman codes of length 1 to 16 and the 1-byte symbols
- * sorted by huffman code for a given huffman tree
- */
-export const getHuffmanCodeCounts16 = (huffmanTree: HuffmanTree) => {
-  const countsAndSymbols = getHuffmanCodeCounts(huffmanTree)
-  const { counts } = countsAndSymbols
+const assureHuffmanCounts16 = (counts: number[]) => {
   let i = counts.length
   if (i > 16) {
-    throw new InvalidJpegError('Invalid huffman tree')
+    throw new InvalidJpegError(`Exceeded maximum code length`)
   }
   for (; i < 16; i += 1) {
     counts.push(0)
   }
-  return countsAndSymbols
 }
 
 /**
@@ -82,7 +75,8 @@ export const encodeDHT = (segment: DHT, offset: number, buffer: Uint8Array) => {
   setUint16(buffer, offset, getDhtLength(segment) - 2)
   offset += 2
   buffer[offset++] = setHiLow(segment.cls, segment.id)
-  const { counts, symbols } = getHuffmanCodeCounts16(segment.tree)
+  const { counts, symbols } = getHuffmanCodeCounts(segment.tree)
+  assureHuffmanCounts16(counts)
   buffer.set(counts, offset)
   offset += 16
   buffer.set(symbols, offset)

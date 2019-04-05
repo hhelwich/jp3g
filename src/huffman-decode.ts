@@ -1,13 +1,23 @@
 import { DHT, HuffmanTree } from './jpeg'
 import { getHiLow } from './decode'
+import { InvalidJpegError } from './InvalidJpegError';
 
 /**
  * Build a huffman tree from The counts of huffman codes starting with length
  * 1 and the 1-byte symbols sorted by huffman code.
  */
-export const getHuffmanTree = (counts: number[], symbols: number[]) => {
+export const getHuffmanTree = ({
+  counts,
+  symbols,
+}: {
+  counts: number[]
+  symbols: number[]
+}): HuffmanTree => {
   let transferNodes: HuffmanTree[] = []
   let symbolsEnd = symbols.length
+  if (counts.reduce((a, b) => a + b, 0) !== symbolsEnd) {
+    throw new InvalidJpegError('Invalid huffman table')
+  }
   for (let i = counts.length - 1; i >= 0; i -= 1) {
     const count = counts[i]
     const nodes: HuffmanTree = (<HuffmanTree>(
@@ -19,7 +29,10 @@ export const getHuffmanTree = (counts: number[], symbols: number[]) => {
     }
     symbolsEnd -= count
   }
-  return transferNodes[0]
+  if (transferNodes.length > 1) {
+    throw new InvalidJpegError('Invalid huffman table')
+  }
+  return transferNodes[0] || []
 }
 
 /**
@@ -33,7 +46,7 @@ export const decodeDHT = (data: Uint8Array): DHT => {
   // Get the symbols sorted by Huffman code
   const symbolCount = counts.reduce((sum, count) => sum + count, 0)
   const symbols = Array.from(data.subarray(19, 19 + symbolCount))
-  const tree = getHuffmanTree(counts, symbols)
+  const tree = getHuffmanTree({ counts, symbols })
   return {
     type: 'DHT',
     cls,
