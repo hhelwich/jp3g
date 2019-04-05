@@ -1,6 +1,8 @@
 import { getHuffmanTree } from './huffman-decode'
 import { getHuffmanCodeCounts } from './huffman-encode'
 
+const range = (length: number) => [...Array(length).keys()]
+
 describe('huffman', () => {
   describe('getHuffmanTree', () => {
     it('returns empty tree for empty symbols and code lengths', () => {
@@ -24,14 +26,19 @@ describe('huffman', () => {
         expect(() => {
           getHuffmanTree({
             counts: [0, 1, 1, 2, 3, 5, 8],
-            symbols: [...Array(symbolCount).keys()],
+            symbols: range(symbolCount),
           })
         }).toThrow()
       })
     })
     it('can handle full tree', () => {
-      getHuffmanTree({ counts: [2], symbols: [0, 1] })
-      getHuffmanTree({ counts: [0, 1, 1, 10], symbols: [...Array(12).keys()] })
+      expect(getHuffmanTree({ counts: [2], symbols: [0, 1] })).toEqual([0, 1])
+      expect(
+        getHuffmanTree({
+          counts: [0, 1, 1, 10],
+          symbols: range(12),
+        })
+      ).toEqual([[0, [1, [2, 3]]], [[[4, 5], [6, 7]], [[8, 9], [10, 11]]]])
     })
     it('throws on overfull tree', () => {
       expect(() => {
@@ -40,7 +47,7 @@ describe('huffman', () => {
       expect(() => {
         getHuffmanTree({
           counts: [0, 1, 1, 11],
-          symbols: [...Array(13).keys()],
+          symbols: range(13),
         })
       }).toThrow()
     })
@@ -48,7 +55,7 @@ describe('huffman', () => {
       expect(
         getHuffmanTree({
           counts: [0, 1, 1, 2, 3, 5, 8],
-          symbols: [...Array(20).keys()],
+          symbols: range(20),
         })
       ).toEqual([
         [0, [1, [2, 3]]],
@@ -87,13 +94,13 @@ describe('huffman', () => {
         ])
       ).toEqual({
         counts: [0, 1, 1, 2, 3, 5, 8],
-        symbols: [...Array(20).keys()],
+        symbols: range(20),
       })
     })
     it('(getHuffmanCodeCounts ∘ getHuffmanTree) is identity', () => {
       const huffDef = {
         counts: [0, 1, 1, 2, 3, 5, 8],
-        symbols: [...Array(20).keys()],
+        symbols: range(20),
       }
       expect(getHuffmanCodeCounts(getHuffmanTree(huffDef))).toEqual(huffDef)
     })
