@@ -8,7 +8,7 @@ const jpeg8x8 = fs.readFileSync('images/8x8.jpg')
 const jpegFillBytes = fs.readFileSync('images/8x8-fill-bytes.jpg')
 const jpegDataAfterEOI = fs.readFileSync('images/8x8-data-after-eoi.jpg')
 const jpegFillBytesBeforeSOI = fs.readFileSync(
-  'images/8x8-fill-bytes-before-soi.jpg'
+  'images/invalid/8x8-fill-bytes-before-soi.jpg'
 )
 
 describe('getDiff', () => {
