@@ -47,8 +47,8 @@ export interface SOF {
   height: number
   components: ({
     id: number
-    hs: number
-    vs: number
+    h: number
+    v: number
     qId: number
   })[]
 }

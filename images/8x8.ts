@@ -160,20 +160,20 @@ export default [
     components: [
       {
         id: 1,
-        hs: 1,
-        vs: 1,
+        h: 1,
+        v: 1,
         qId: 0,
       },
       {
         id: 2,
-        hs: 1,
-        vs: 1,
+        h: 1,
+        v: 1,
         qId: 1,
       },
       {
         id: 3,
-        hs: 1,
-        vs: 1,
+        h: 1,
+        v: 1,
         qId: 1,
       },
     ],

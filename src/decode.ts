@@ -70,10 +70,10 @@ export const decodeSOF = (frameType: number, data: Uint8Array): SOF => {
     // The 4 high-order bits specify the horizontal sampling for the component
     // The 4 low-order bits specify the vertical sampling
     // Either value can be 1-4 according to the standard
-    const [hs, vs] = getHiLow(data[offset++])
+    const [h, v] = getHiLow(data[offset++])
     // The quantization table identifier for the component. Corresponds to the identifier in a DQT marker. Can be 0, 1, 2, or 3
     const qId = data[offset++]
-    components.push({ id, hs, vs, qId })
+    components.push({ id, h, v, qId })
   }
   return {
     type: 'SOF',

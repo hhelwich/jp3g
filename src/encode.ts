@@ -59,7 +59,7 @@ const encodeSOF = (segment: SOF, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = segment.components.length
   for (const component of segment.components) {
     buffer[offset++] = component.id
-    buffer[offset++] = setHiLow(component.hs, component.vs)
+    buffer[offset++] = setHiLow(component.h, component.v)
     buffer[offset++] = component.qId
   }
   return offset
