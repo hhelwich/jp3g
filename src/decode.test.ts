@@ -2,7 +2,7 @@ import fs from 'fs'
 import { decode, getDiff } from './decode'
 import { encode } from './encode'
 import { InvalidJpegError } from './InvalidJpegError'
-import jpeg8x8Expected from '../images/8x8'
+import jpegSmallExpected from '../images/small'
 
 const jpeg8x8 = fs.readFileSync('images/8x8.jpg')
 const jpegFillBytes = fs.readFileSync('images/8x8-fill-bytes.jpg')
@@ -10,6 +10,7 @@ const jpegDataAfterEOI = fs.readFileSync('images/8x8-data-after-eoi.jpg')
 const jpegFillBytesBeforeSOI = fs.readFileSync(
   'images/invalid/8x8-fill-bytes-before-soi.jpg'
 )
+const jpegSmall = fs.readFileSync('images/small.jpg')
 
 describe('getDiff', () => {
   it('returns correct result up to bit length 31', () => {
@@ -27,10 +28,10 @@ describe('getDiff', () => {
 
 describe('decode', () => {
   it('returns correct JPEG structure', () => {
-    expect(decode(jpeg8x8)).toEqual(jpeg8x8Expected)
+    expect(decode(jpegSmall)).toEqual(jpegSmallExpected)
   })
   it('can be reencoded to same buffer', () => {
-    expect(encode(decode(jpeg8x8))).toEqual(jpeg8x8)
+    expect(encode(decode(jpegSmall))).toEqual(jpegSmall)
   })
   it('throws for fill bytes before SOI marker', () => {
     expect(() => {
