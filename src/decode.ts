@@ -2,7 +2,6 @@ import { InvalidJpegError } from './InvalidJpegError'
 import {
   APP,
   COM,
-  DQT,
   SOF,
   Jpeg,
   MARKER_SOI,
@@ -13,9 +12,10 @@ import {
   MARKER_SOS,
   MARKER_EOI,
 } from './jpeg'
-import { decodeDHT } from './huffman-decode';
+import { decodeDHT } from './huffman-decode'
+import { decodeDQT } from './decodeQuantization'
 
-const getUint16 = (data: Uint8Array, offset: number) =>
+export const getUint16 = (data: Uint8Array, offset: number) =>
   (data[offset] << 8) | data[offset + 1]
 
 const isRestartMarker = (marker: number) => 0xd0 <= marker && marker <= 0xd7
@@ -46,11 +46,6 @@ export const decodeAPP = (appType: number, data: Uint8Array): APP => ({
 export const decodeCOM = (data: Uint8Array): COM => ({
   type: 'COM',
   text: String.fromCharCode.apply(null, <any>data.subarray(2)),
-})
-
-export const decodeDQT = (data: Uint8Array): DQT => ({
-  type: 'DQT',
-  data: data.subarray(2),
 })
 
 /**

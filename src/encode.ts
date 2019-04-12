@@ -1,7 +1,6 @@
 import {
   MARKER_SOI,
   MARKER_COM,
-  MARKER_DQT,
   MARKER_SOF0,
   MARKER_SOS,
   MARKER_EOI,
@@ -12,6 +11,7 @@ import {
 } from './jpeg'
 import { isNode } from './isNode'
 import { getDhtLength, encodeDHT } from './huffman-encode'
+import { encodeDQT } from './encodeQuantization'
 
 export const setUint16 = (data: Uint8Array, offset: number, value: number) => {
   data[offset] = value >> 8
@@ -24,7 +24,8 @@ const createBuffer = (size: number) =>
   isNode ? Buffer.alloc(size) : new Uint8Array(size)
 
 const getSofLength = (sof: SOF) => 4 + 6 + sof.components.length * 3
-const getSosLength = (sos: SOS) => sos.components.length * 2 + 8 + sos.data.length
+const getSosLength = (sos: SOS) =>
+  sos.components.length * 2 + 8 + sos.data.length
 
 const segmentLength = (segment: Segment): number => {
   switch (segment.type) {
@@ -36,7 +37,7 @@ const segmentLength = (segment: Segment): number => {
     case 'COM':
       return segment.text.length + 4
     case 'DQT':
-      return segment.data.length + 4
+      return segment.bytes * 64 + 5
     case 'SOF':
       return getSofLength(segment)
     case 'DHT':
@@ -114,15 +115,8 @@ const encodeSegment = (
       offset += length
       break
     }
-    case 'DQT': {
-      buffer[offset++] = 0xff
-      buffer[offset++] = MARKER_DQT
-      const length = segment.data.length + 2
-      setUint16(buffer, offset, length)
-      buffer.set(segment.data, offset + 2)
-      offset += length
-      break
-    }
+    case 'DQT':
+      return encodeDQT(segment, offset, buffer)
     case 'SOF':
       return encodeSOF(segment, offset, buffer)
     case 'DHT':

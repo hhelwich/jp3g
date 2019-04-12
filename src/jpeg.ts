@@ -23,7 +23,9 @@ export interface COM {
 
 export interface DQT {
   type: 'DQT'
-  data: Uint8Array
+  id: 0 | 1 | 2 | 3
+  bytes: 1 | 2
+  values: number[]
 }
 
 /**
