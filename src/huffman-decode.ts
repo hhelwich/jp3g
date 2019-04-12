@@ -39,16 +39,15 @@ export const getHuffmanTree = ({
  * Decode DHT segment
  */
 export const decodeDHT = (data: Uint8Array): DHT => {
-  // First byte is ignored (length of the segment)
-  const [cls, id] = getHiLow(data[2])
+  const [cls, id] = getHiLow(data[0])
   // Get count of Huffman codes of length 1 to 16
-  const counts = Array.from(data.subarray(3, 19))
+  const counts = Array.from(data.subarray(1, 17))
   // Get the symbols sorted by Huffman code
   const symbolCount = counts.reduce((sum, count) => sum + count, 0)
-  if (symbolCount + 19 !== data.length) {
+  if (symbolCount + 17 !== data.length) {
     throw new InvalidJpegError('Invalid segment length')
   }
-  const symbols = Array.from(data.subarray(19, 19 + symbolCount))
+  const symbols = Array.from(data.subarray(17, symbolCount + 17))
   const tree = getHuffmanTree({ counts, symbols })
   return {
     type: 'DHT',

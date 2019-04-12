@@ -40,26 +40,26 @@ export const getHiLow = (byte: number) => [byte >> 4, byte & 0xf]
 export const decodeAPP = (appType: number, data: Uint8Array): APP => ({
   type: 'APP',
   appType,
-  data: data.subarray(2),
+  data,
 })
 
 export const decodeCOM = (data: Uint8Array): COM => ({
   type: 'COM',
-  text: String.fromCharCode.apply(null, <any>data.subarray(2)),
+  text: String.fromCharCode.apply(null, <any>data),
 })
 
 /**
  * Decode SOF (Start of frame) segment
  */
 export const decodeSOF = (frameType: number, data: Uint8Array): SOF => {
-  const precision = data[2] // Sample precision in bits (can be 8 or 12)
-  const height = getUint16(data, 3) // Image height in pixels
-  const width = getUint16(data, 5) // Image width in pixels
-  const compCount = data[7] // Number of components in the image
-  if (data.length !== compCount * 3 + 8) {
+  const precision = data[0] // Sample precision in bits (can be 8 or 12)
+  const height = getUint16(data, 1) // Image height in pixels
+  const width = getUint16(data, 3) // Image width in pixels
+  const compCount = data[5] // Number of components in the image
+  if (data.length !== compCount * 3 + 6) {
     throw new InvalidJpegError('Invalid segment length')
   }
-  let offset = 8
+  let offset = 6
   const components = []
   for (let i = 0; i < compCount; i += 1) {
     // Component identifier
@@ -173,7 +173,7 @@ export const decode = (jpeg: Uint8Array): Jpeg => {
           throw new InvalidJpegError('Invalid segment length')
         }
         offset = segEnd = segStart + segLength
-        const d = jpeg.subarray(segStart, segEnd)
+        const d = jpeg.subarray(segStart + 2, segEnd)
         if (byte === MARKER_DQT) {
           result.push(decodeDQT(d))
         } else if (byte === MARKER_DHT) {
