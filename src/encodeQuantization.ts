@@ -1,6 +1,8 @@
 import { DQT, MARKER_DQT, dctZigZag } from './jpeg'
 import { setUint16, setHiLow } from './encode'
 
+export const getDqtLength = (dqt: DQT) => dqt.bytes * 64 + 5
+
 const setUint8or16 = (bytes: 1 | 2) =>
   bytes === 1
     ? (data: Uint8Array, offset: number, value: number) => {

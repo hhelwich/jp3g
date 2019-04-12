@@ -18,6 +18,9 @@ export const decodeDQT = (data: Uint8Array): DQT => {
     throw new InvalidJpegError('invalid quantization value size')
   }
   const bytes = <1 | 2>(size + 1)
+  if (bytes * 64 + 3 !== data.length) {
+    throw new InvalidJpegError('invalid segment length')
+  }
   const values: number[] = Array(64)
   const getUint = getUint8or16(bytes)
   for (let i = 0; i < 64; i += 1) {

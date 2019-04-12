@@ -10,6 +10,15 @@ const jpegDataAfterEOI = fs.readFileSync('images/8x8-data-after-eoi.jpg')
 const jpegFillBytesBeforeSOI = fs.readFileSync(
   'images/invalid/8x8-fill-bytes-before-soi.jpg'
 )
+const smallDataAfterDqt = fs.readFileSync(
+  'images/invalid/small-data-after-dqt.jpg'
+)
+const smallDataAfterSof = fs.readFileSync(
+  'images/invalid/small-data-after-sof.jpg'
+)
+const smallDataAfterDht = fs.readFileSync(
+  'images/invalid/small-data-after-dht.jpg'
+)
 const jpegSmall = fs.readFileSync('images/small.jpg')
 
 describe('getDiff', () => {
@@ -36,6 +45,21 @@ describe('decode', () => {
   it('throws for fill bytes before SOI marker', () => {
     expect(() => {
       decode(jpegFillBytesBeforeSOI)
+    }).toThrowError(InvalidJpegError)
+  })
+  it('throws for fill bytes after DQT segment', () => {
+    expect(() => {
+      decode(smallDataAfterDqt)
+    }).toThrowError(InvalidJpegError)
+  })
+  it('throws for fill bytes after SOF segment', () => {
+    expect(() => {
+      decode(smallDataAfterSof)
+    }).toThrowError(InvalidJpegError)
+  })
+  it('throws for fill bytes after DHT segment', () => {
+    expect(() => {
+      decode(smallDataAfterDht)
     }).toThrowError(InvalidJpegError)
   })
   it('ignores fill bytes before markers', () => {

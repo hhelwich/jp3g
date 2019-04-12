@@ -56,6 +56,9 @@ export const decodeSOF = (frameType: number, data: Uint8Array): SOF => {
   const height = getUint16(data, 3) // Image height in pixels
   const width = getUint16(data, 5) // Image width in pixels
   const compCount = data[7] // Number of components in the image
+  if (data.length !== compCount * 3 + 8) {
+    throw new InvalidJpegError('Invalid segment length')
+  }
   let offset = 8
   const components = []
   for (let i = 0; i < compCount; i += 1) {
@@ -166,6 +169,9 @@ export const decode = (jpeg: Uint8Array): Jpeg => {
         return result
       } else {
         const segLength = getUint16(jpeg, offset)
+        if (segLength < 2) {
+          throw new InvalidJpegError('Invalid segment length')
+        }
         offset = segEnd = segStart + segLength
         const d = jpeg.subarray(segStart, segEnd)
         if (byte === MARKER_DQT) {
