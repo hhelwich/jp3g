@@ -1,19 +1,27 @@
-import { DQT, MARKER_DQT } from './jpeg'
+import { DQT, MARKER_DQT, dctZigZag } from './jpeg'
 import { setUint16, setHiLow } from './encode'
 
-export const encodeDQT = (segment: DQT, offset: number, buffer: Uint8Array) => {
+const setUint8or16 = (bytes: 1 | 2) =>
+  bytes === 1
+    ? (data: Uint8Array, offset: number, value: number) => {
+        data[offset] = value
+      }
+    : setUint16
+
+export const encodeDQT = (
+  { id, bytes, values }: DQT,
+  offset: number,
+  buffer: Uint8Array
+) => {
   buffer[offset++] = 0xff
   buffer[offset++] = MARKER_DQT
-  const length = segment.bytes * 64 + 3
+  const length = bytes * 64 + 3
   setUint16(buffer, offset, length)
   offset += 2
-  buffer[offset++] = setHiLow(segment.bytes - 1, segment.id)
-  if (segment.bytes === 1) {
-    buffer.set(segment.values, offset)
-  } else {
-    for (let i = 0; i < 64; i += 1) {
-      setUint16(buffer, offset + i * 2, segment.values[i])
-    }
+  buffer[offset++] = setHiLow(bytes - 1, id)
+  const setUint = setUint8or16(bytes)
+  for (let i = 0; i < 64; i += 1) {
+    setUint(buffer, offset + i * bytes, values[dctZigZag[i]])
   }
   return offset + length - 3
 }

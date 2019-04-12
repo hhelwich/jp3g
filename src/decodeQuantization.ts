@@ -1,6 +1,9 @@
-import { DQT } from './jpeg'
+import { DQT, dctZigZag } from './jpeg'
 import { getHiLow, getUint16 } from './decode'
 import { InvalidJpegError } from './InvalidJpegError'
+
+const getUint8or16 = (bytes: 1 | 2) =>
+  bytes === 1 ? (data: Uint8Array, offset: number) => data[offset] : getUint16
 
 export const decodeDQT = (data: Uint8Array): DQT => {
   // First byte is ignored (length of the segment)
@@ -15,14 +18,10 @@ export const decodeDQT = (data: Uint8Array): DQT => {
     throw new InvalidJpegError('invalid quantization value size')
   }
   const bytes = <1 | 2>(size + 1)
-  let values: number[]
-  if (bytes === 1) {
-    values = Array.from(data.subarray(3))
-  } else {
-    values = Array(64)
-    for (let i = 0; i < 64; i += 1) {
-      values[i] = getUint16(data, 3 + i * 2)
-    }
+  const values: number[] = Array(64)
+  const getUint = getUint8or16(bytes)
+  for (let i = 0; i < 64; i += 1) {
+    values[dctZigZag[i]] = getUint(data, 3 + i * bytes)
   }
   return {
     type: 'DQT',
