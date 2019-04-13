@@ -1,9 +1,7 @@
 import { Jpeg } from '../src/jpeg'
 
 const jpeg: Jpeg = [
-  {
-    type: 'SOI',
-  },
+  { type: 'SOI' },
   {
     type: 'APP',
     appType: 0,
@@ -51,34 +49,15 @@ const jpeg: Jpeg = [
     width: 19,
     height: 13,
     components: [
-      {
-        id: 1,
-        h: 2,
-        v: 2,
-        qId: 0,
-      },
-      {
-        id: 2,
-        h: 1,
-        v: 1,
-        qId: 1,
-      },
-      {
-        id: 3,
-        h: 1,
-        v: 1,
-        qId: 1,
-      },
+      { id: 1, h: 2, v: 2, qId: 0 },
+      { id: 2, h: 1, v: 1, qId: 1 },
+      { id: 3, h: 1, v: 1, qId: 1 },
     ],
   },
   {
     type: 'DHT',
     tables: [
-      {
-        cls: 0,
-        id: 0,
-        tree: [2, [4, [0, [5, [7]]]]],
-      },
+      { cls: 0, id: 0, tree: [2, [4, [0, [5, [7]]]]] },
       {
         cls: 1,
         id: 0,
@@ -95,21 +74,9 @@ const jpeg: Jpeg = [
   {
     type: 'SOS',
     components: [
-      {
-        id: 1,
-        dcTbl: 0,
-        acTbl: 0,
-      },
-      {
-        id: 2,
-        dcTbl: 0,
-        acTbl: 0,
-      },
-      {
-        id: 3,
-        dcTbl: 0,
-        acTbl: 0,
-      },
+      { id: 1, dcTbl: 0, acTbl: 0 },
+      { id: 2, dcTbl: 0, acTbl: 0 },
+      { id: 3, dcTbl: 0, acTbl: 0 },
     ],
     specStart: 0,
     specEnd: 63,
@@ -195,9 +162,7 @@ const jpeg: Jpeg = [
       95,
     ]),
   },
-  {
-    type: 'EOI',
-  },
+  { type: 'EOI' },
 ]
 
 export default jpeg
