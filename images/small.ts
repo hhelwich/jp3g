@@ -1,4 +1,6 @@
-export default [
+import { Jpeg } from '../src/jpeg'
+
+const jpeg: Jpeg = [
   { type: 'SOI' },
   {
     type: 'APP',
@@ -58,24 +60,31 @@ export default [
       { id: 3, h: 1, v: 1, qId: 1 },
     ],
   },
-  { type: 'DHT', cls: 0, id: 0, tree: [[0, 4], [[2, 5], [7]]] },
+  { type: 'DHT', tables: [{ cls: 0, id: 0, tree: [[0, 4], [[2, 5], [7]]] }] },
   {
     type: 'DHT',
-    cls: 1,
-    id: 0,
-    tree: [
-      1,
-      [
-        [2, [0, 3]],
-        [
-          [4, 0x11],
-          [[5, 0x21], [[0x13, 0x41], [[0x31, 0x51], [0x91, [0xb1]]]]],
+    tables: [
+      {
+        cls: 1,
+        id: 0,
+        tree: [
+          1,
+          [
+            [2, [0, 3]],
+            [
+              [4, 0x11],
+              [[5, 0x21], [[0x13, 0x41], [[0x31, 0x51], [0x91, [0xb1]]]]],
+            ],
+          ],
         ],
-      ],
+      },
     ],
   },
-  { type: 'DHT', cls: 0, id: 1, tree: [2] },
-  { type: 'DHT', cls: 1, id: 1, tree: [0, [0x11, [[0x21, 0x22], [0x61]]]] },
+  { type: 'DHT', tables: [{ cls: 0, id: 1, tree: [2] }] },
+  {
+    type: 'DHT',
+    tables: [{ cls: 1, id: 1, tree: [0, [0x11, [[0x21, 0x22], [0x61]]]] }],
+  },
   {
     type: 'SOS',
     components: [
@@ -166,3 +175,5 @@ export default [
   },
   { type: 'EOI' },
 ]
+
+export default jpeg

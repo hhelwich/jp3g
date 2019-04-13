@@ -51,11 +51,15 @@ export interface DQT {
  */
 export interface HuffmanTree extends Array<HuffmanTree | number> {}
 
-export interface DHT {
-  type: 'DHT'
+export interface DHT_TABLE {
   cls: number
   id: number
   tree: HuffmanTree
+}
+
+export interface DHT {
+  type: 'DHT'
+  tables: DHT_TABLE[]
 }
 
 export interface SOF {

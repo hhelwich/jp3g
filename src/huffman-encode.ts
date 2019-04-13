@@ -67,18 +67,22 @@ const getHuffmanNodeSize = (node: HuffmanTree | number | undefined): number =>
 /**
  * Returns the number of bytes needed to encode the given DHT segment
  */
-export const getDhtLength = (dht: DHT) => getHuffmanNodeSize(dht.tree) + 21
+export const getDhtLength = ({ tables }: DHT) =>
+  tables.reduce((len, { tree }) => len + getHuffmanNodeSize(tree) + 17, 4)
 
 export const encodeDHT = (segment: DHT, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = 0xff
   buffer[offset++] = MARKER_DHT
   setUint16(buffer, offset, getDhtLength(segment) - 2)
   offset += 2
-  buffer[offset++] = setHiLow(segment.cls, segment.id)
-  const { counts, symbols } = getHuffmanCodeCounts(segment.tree)
-  assureHuffmanCounts16(counts)
-  buffer.set(counts, offset)
-  offset += 16
-  buffer.set(symbols, offset)
-  return offset + symbols.length
+  for (const { cls, id, tree } of segment.tables) {
+    buffer[offset++] = setHiLow(cls, id)
+    const { counts, symbols } = getHuffmanCodeCounts(tree)
+    assureHuffmanCounts16(counts)
+    buffer.set(counts, offset)
+    offset += 16
+    buffer.set(symbols, offset)
+    offset += symbols.length
+  }
+  return offset
 }
