@@ -1,7 +1,8 @@
 import { DQT, MARKER_DQT, zigZag } from './jpeg'
 import { setUint16, setHiLow } from './encode'
 
-export const getDqtLength = (dqt: DQT) => dqt.bytes * 64 + 5
+export const getDqtLength = (dqt: DQT) =>
+  dqt.tables.reduce((length, { bytes }) => length + bytes * 64 + 1, 4)
 
 const setUint8or16 = (bytes: 1 | 2) =>
   bytes === 1
@@ -10,20 +11,20 @@ const setUint8or16 = (bytes: 1 | 2) =>
       }
     : setUint16
 
-export const encodeDQT = (
-  { id, bytes, values }: DQT,
-  offset: number,
-  buffer: Uint8Array
-) => {
+export const encodeDQT = (dqt: DQT, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = 0xff
   buffer[offset++] = MARKER_DQT
-  const length = bytes * 64 + 3
+  const length = getDqtLength(dqt) - 2
+  const { tables } = dqt
   setUint16(buffer, offset, length)
   offset += 2
-  buffer[offset++] = setHiLow(bytes - 1, id)
-  const setUint = setUint8or16(bytes)
-  for (let i = 0; i < 64; i += 1) {
-    setUint(buffer, offset + i * bytes, values[zigZag[i]])
+  for (const { id, bytes, values } of tables) {
+    buffer[offset++] = setHiLow(bytes - 1, id)
+    const setUint = setUint8or16(bytes)
+    for (let i = 0; i < 64; i += 1) {
+      setUint(buffer, offset + i * bytes, values[zigZag[i]])
+    }
+    offset += bytes * 64
   }
-  return offset + length - 3
+  return offset
 }

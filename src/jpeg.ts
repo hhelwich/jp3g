@@ -34,11 +34,15 @@ export interface COM {
   text: string
 }
 
-export interface DQT {
-  type: 'DQT'
+export interface DQT_TABLE {
   id: 0 | 1 | 2 | 3
   bytes: 1 | 2
   values: number[]
+}
+
+export interface DQT {
+  type: 'DQT'
+  tables: DQT_TABLE[]
 }
 
 /**
