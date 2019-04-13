@@ -5,7 +5,7 @@ const jpeg: Jpeg = [
   {
     type: 'APP',
     appType: 0,
-    data: Buffer.from([74, 70, 73, 70, 0, 1, 1, 1, 0, 72, 0, 72, 0, 0]),
+    data: new Uint8Array([74, 70, 73, 70, 0, 1, 1, 1, 0, 72, 0, 72, 0, 0]),
   },
   { type: 'COM', text: 'Foo' },
   {
@@ -96,7 +96,7 @@ const jpeg: Jpeg = [
     specEnd: 63,
     ah: 0,
     al: 0,
-    data: Buffer.from([
+    data: new Uint8Array([
       0xcd,
       0xb8,
       0xec,

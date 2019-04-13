@@ -1,27 +1,21 @@
-import fs from 'fs'
 import { decode, getDiff } from './decode'
 import { encode } from './encode'
 import { InvalidJpegError } from './InvalidJpegError'
 import jpegSmallExpected from '../images/small'
 import jpegSmallGuetzliExpected from '../images/small-guetzli'
+import { readImageFile } from './testUtil'
 
-const jpeg8x8 = fs.readFileSync('images/8x8.jpg')
-const jpegFillBytes = fs.readFileSync('images/8x8-fill-bytes.jpg')
-const jpegDataAfterEOI = fs.readFileSync('images/8x8-data-after-eoi.jpg')
-const jpegFillBytesBeforeSOI = fs.readFileSync(
-  'images/invalid/8x8-fill-bytes-before-soi.jpg'
+const jpeg8x8 = readImageFile('8x8')
+const jpegFillBytes = readImageFile('8x8-fill-bytes')
+const jpegDataAfterEOI = readImageFile('8x8-data-after-eoi')
+const jpegFillBytesBeforeSOI = readImageFile(
+  'invalid/8x8-fill-bytes-before-soi'
 )
-const smallDataAfterDqt = fs.readFileSync(
-  'images/invalid/small-data-after-dqt.jpg'
-)
-const smallDataAfterSof = fs.readFileSync(
-  'images/invalid/small-data-after-sof.jpg'
-)
-const smallDataAfterDht = fs.readFileSync(
-  'images/invalid/small-data-after-dht.jpg'
-)
-const jpegSmall = fs.readFileSync('images/small.jpg')
-const jpegSmallGuetzli = fs.readFileSync('images/small-guetzli.jpg')
+const smallDataAfterDqt = readImageFile('invalid/small-data-after-dqt')
+const smallDataAfterSof = readImageFile('invalid/small-data-after-sof')
+const smallDataAfterDht = readImageFile('invalid/small-data-after-dht')
+const jpegSmall = readImageFile('small')
+const jpegSmallGuetzli = readImageFile('small-guetzli')
 
 describe('getDiff', () => {
   it('returns correct result up to bit length 31', () => {

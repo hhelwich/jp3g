@@ -9,7 +9,6 @@ import {
   SOF,
   SOS,
 } from './jpeg'
-import { isNode } from './isNode'
 import { getDhtLength, encodeDHT } from './huffman-encode'
 import { encodeDQT, getDqtLength } from './encodeQuantization'
 
@@ -20,8 +19,7 @@ export const setUint16 = (data: Uint8Array, offset: number, value: number) => {
 
 export const setHiLow = (high: number, low: number) => (high << 4) | low
 
-const createBuffer = (size: number) =>
-  isNode ? Buffer.alloc(size) : new Uint8Array(size)
+const createBuffer = (size: number) => new Uint8Array(size)
 
 const getSofLength = (sof: SOF) => 10 + sof.components.length * 3
 const getSosLength = (sos: SOS) =>

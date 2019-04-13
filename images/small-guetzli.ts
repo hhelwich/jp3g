@@ -7,7 +7,7 @@ const jpeg: Jpeg = [
   {
     type: 'APP',
     appType: 0,
-    data: Buffer.from([74, 70, 73, 70, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0]),
+    data: new Uint8Array([74, 70, 73, 70, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0]),
   },
   {
     type: 'DQT',
@@ -115,7 +115,7 @@ const jpeg: Jpeg = [
     specEnd: 63,
     ah: 0,
     al: 0,
-    data: Buffer.from([
+    data: new Uint8Array([
       243,
       107,
       117,
