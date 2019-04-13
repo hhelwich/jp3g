@@ -6,9 +6,9 @@ export const MARKER_SOS = 0xda // Start of scan
 export const MARKER_EOI = 0xd9 // End of image
 export const MARKER_SOF0 = 0xc0 // Start of frame, baseline
 
-// Zig-zag sequence of quantized DCT coefficients
+// Map zigzag ordered list index to original 8x8 matrix index
 // prettier-ignore
-export const dctZigZag = new Uint8Array([
+export const zigZag = new Uint8Array([
    0,  1,  8, 16,  9,  2,  3, 10,
   17, 24, 32, 25, 18, 11,  4,  5,
   12, 19, 26, 33, 40, 48, 41, 34,

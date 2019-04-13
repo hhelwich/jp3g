@@ -1,4 +1,4 @@
-import { DQT, dctZigZag } from './jpeg'
+import { DQT, zigZag } from './jpeg'
 import { getHiLow, getUint16 } from './decode'
 import { InvalidJpegError } from './InvalidJpegError'
 
@@ -24,7 +24,7 @@ export const decodeDQT = (data: Uint8Array): DQT => {
   const values: number[] = Array(64)
   const getUint = getUint8or16(bytes)
   for (let i = 0; i < 64; i += 1) {
-    values[dctZigZag[i]] = getUint(data, i * bytes + 1)
+    values[zigZag[i]] = getUint(data, i * bytes + 1)
   }
   return {
     type: 'DQT',

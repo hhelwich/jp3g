@@ -1,7 +1,6 @@
+import { range } from './testUtil'
 import { getHuffmanTree } from './huffman-decode'
 import { getHuffmanCodeCounts } from './huffman-encode'
-
-const range = (length: number) => [...Array(length).keys()]
 
 describe('huffman', () => {
   describe('getHuffmanTree', () => {

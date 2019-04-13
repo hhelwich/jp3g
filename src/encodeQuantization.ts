@@ -1,4 +1,4 @@
-import { DQT, MARKER_DQT, dctZigZag } from './jpeg'
+import { DQT, MARKER_DQT, zigZag } from './jpeg'
 import { setUint16, setHiLow } from './encode'
 
 export const getDqtLength = (dqt: DQT) => dqt.bytes * 64 + 5
@@ -23,7 +23,7 @@ export const encodeDQT = (
   buffer[offset++] = setHiLow(bytes - 1, id)
   const setUint = setUint8or16(bytes)
   for (let i = 0; i < 64; i += 1) {
-    setUint(buffer, offset + i * bytes, values[dctZigZag[i]])
+    setUint(buffer, offset + i * bytes, values[zigZag[i]])
   }
   return offset + length - 3
 }
