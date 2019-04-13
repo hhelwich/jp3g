@@ -3,6 +3,7 @@ import { decode, getDiff } from './decode'
 import { encode } from './encode'
 import { InvalidJpegError } from './InvalidJpegError'
 import jpegSmallExpected from '../images/small'
+import jpegSmallGuetzliExpected from '../images/small-guetzli'
 
 const jpeg8x8 = fs.readFileSync('images/8x8.jpg')
 const jpegFillBytes = fs.readFileSync('images/8x8-fill-bytes.jpg')
@@ -20,6 +21,7 @@ const smallDataAfterDht = fs.readFileSync(
   'images/invalid/small-data-after-dht.jpg'
 )
 const jpegSmall = fs.readFileSync('images/small.jpg')
+const jpegSmallGuetzli = fs.readFileSync('images/small-guetzli.jpg')
 
 describe('getDiff', () => {
   it('returns correct result up to bit length 31', () => {
@@ -41,6 +43,12 @@ describe('decode', () => {
   })
   it('can be reencoded to same buffer', () => {
     expect(encode(decode(jpegSmall))).toEqual(jpegSmall)
+  })
+  it('returns correct JPEG structure for multiple tables in DQT and DHT', () => {
+    expect(decode(jpegSmallGuetzli)).toEqual(jpegSmallGuetzliExpected)
+  })
+  it('can reencoded multiple tables in DQT and DHT to the same buffer', () => {
+    expect(encode(decode(jpegSmallGuetzli))).toEqual(jpegSmallGuetzli)
   })
   it('throws for fill bytes before SOI marker', () => {
     expect(() => {
