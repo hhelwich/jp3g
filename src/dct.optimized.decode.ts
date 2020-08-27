@@ -2,8 +2,7 @@ const { cos, PI } = Math
 import { a } from './dct.naive.encode'
 
 /**
- * Naive inverse DCT reference implementation.
- * See: https://en.wikipedia.org/wiki/JPEG#Discrete_cosine_transform
+ * TODO optimize
  */
 export const idct = (g: number[]) => {
   const result: number[] = []

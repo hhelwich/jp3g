@@ -1,4 +1,4 @@
-import { dct } from './dct.naive.encode'
+import { dct } from '../dct.naive.encode'
 
 // prettier-ignore
 export const g = [

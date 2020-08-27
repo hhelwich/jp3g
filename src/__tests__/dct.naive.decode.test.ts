@@ -1,5 +1,5 @@
-import { dct } from './dct.naive.encode'
-import { idct } from './dct.naive.decode'
+import { dct } from '../dct.naive.encode'
+import { idct } from '../dct.naive.decode'
 import { g } from './dct.naive.encode.test'
 
 describe('IDCT (naive)', () => {
