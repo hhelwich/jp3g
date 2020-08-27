@@ -1,4 +1,4 @@
-const { cos, PI } = Math
+const { cos, sqrt, PI } = Math
 
 /**
  * Multiply two 8x8 matrices.
@@ -33,9 +33,7 @@ export const M = (() => {
   for (let i = 0; i < 8; i += 1) {
     for (let j = 0; j < 8; j += 1) {
       M[i * 8 + j] =
-        i === 0
-          ? 1 / Math.sqrt(8)
-          : Math.sqrt(2 / 8) * cos(((2 * j + 1) * i * PI) / 16)
+        i === 0 ? 1 / sqrt(8) : sqrt(2 / 8) * cos(((2 * j + 1) * i * PI) / 16)
     }
   }
   return M
