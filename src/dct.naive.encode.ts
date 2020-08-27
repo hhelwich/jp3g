@@ -2,7 +2,7 @@ const { cos, PI, SQRT2 } = Math
 
 // See: https://en.wikipedia.org/wiki/JPEG#Discrete_cosine_transform
 
-const a = (u: number) => (u === 0 ? 1 / SQRT2 : 1)
+export const a = (u: number) => (u === 0 ? 1 / SQRT2 : 1)
 
 const G = (g: number[], u: number, v: number) => {
   let sum = 0
@@ -16,8 +16,9 @@ const G = (g: number[], u: number, v: number) => {
   }
   return 0.25 * a(u) * a(v) * sum
 }
+
 export const dct = (g: number[]) => {
-  let result: number[] = []
+  const result: number[] = []
   for (let u = 0; u < 8; u += 1) {
     for (let v = 0; v < 8; v += 1) {
       result[u * 8 + v] = G(g, u, v)
