@@ -1,8 +1,8 @@
 import { idct as idctReference } from '../dct.naive.decode'
 import { G } from './dct.naive.encode.test'
-import { idct } from '../dct.optimized.decode'
+import { idct } from '../dct.naive-matrix.decode'
 
-describe('IDCT (optimized)', () => {
+describe('IDCT (naive matrix form)', () => {
   it('equals result of reference IDCT', () => {
     const precision = 11
     const g = idctReference(G).map(x => +x.toFixed(precision))
