@@ -1,19 +1,20 @@
 const { cos, sqrt, PI } = Math
 
 /**
- * Multiply two 8x8 matrices.
+ * Multiply 8x8 matrices.
  */
-export const mult8x8 = (A: number[], B: number[]) => {
-  const C = [...Array(64)].map(_ => 0)
-  for (let i = 0; i < 8; i += 1) {
-    for (let j = 0; j < 8; j += 1) {
-      for (let k = 0; k < 8; k += 1) {
-        C[i * 8 + j] += A[i * 8 + k] * B[k * 8 + j]
+export const mult8x8 = (...As: number[][]) =>
+  As.reduce((A, B): number[] => {
+    const C = [...Array(64)].map(_ => 0)
+    for (let i = 0; i < 8; i += 1) {
+      for (let j = 0; j < 8; j += 1) {
+        for (let k = 0; k < 8; k += 1) {
+          C[i * 8 + j] += A[i * 8 + k] * B[k * 8 + j]
+        }
       }
     }
-  }
-  return C
-}
+    return C
+  })
 
 /**
  * Transpose an 8x8 matrix.

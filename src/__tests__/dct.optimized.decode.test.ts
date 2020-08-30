@@ -4,7 +4,7 @@ import { G } from './dct.naive.encode.test'
 import { idct, M } from '../dct.optimized.decode'
 
 describe('IDCT (optimized)', () => {
-  xit('equals result of reference IDCT', () => {
+  it('equals result of reference IDCT', () => {
     const precision = 10
     const g = idctReference(G).map(x => +x.toFixed(precision))
     const g2 = idct(G).map(x => +x.toFixed(precision))
