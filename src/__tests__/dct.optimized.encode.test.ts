@@ -15,7 +15,7 @@ describe('DCT (optimized)', () => {
     const G: number[] = []
     multM(g, G)
     expect(G.map(x => +x.toFixed(precision))).toEqual(
-      mult8x8(M8, transp8x8(g)).map(x => +x.toFixed(precision))
+      transp8x8(mult8x8(M8, g)).map(x => +x.toFixed(precision))
     )
   })
 })

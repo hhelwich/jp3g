@@ -13,16 +13,6 @@ const m7 = m(7)
 
 // prettier-ignore
 export const M8 = mult8x8(
-  [
-    1, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 0, 0, 0, 0, 0, 0,
-    0, 0, 1, 0, 0, 0, 0, 0,
-    0, 0, 0, 1, 0, 0, 0, 0,
-    0, 0, 0, 0, 1, 0, 0, 0,
-    0, 0, 0, 0, 0, 1, 0, 0,
-    0, 0, 0, 0, 0, 0, 1, 0,
-    0, 0, 0, 0, 0, 0, 0, 1,
-  ],
   /*
   // A
   [
@@ -90,6 +80,7 @@ export const M8 = mult8x8(
     0,  0,  0,  0,  0,  0,  1,  0,
     0,  0,  0,  0,  0,  0,  0,  1,
   ],
+*/
   // G
   [
     1,  0,  0,  0,  0,  0,  0,  1,
@@ -101,30 +92,38 @@ export const M8 = mult8x8(
     0,  1,  0,  0,  0,  0, -1,  0,
     1,  0,  0,  0,  0,  0,  0, -1,
   ]
-  */
 )
 
 /**
- * TODO: Calculate B := M/sqrt(8) * A^t
+ * TODO: Calculate B := (M/sqrt(8) * A)^t
  */
 export const multM = (A: number[], B: number[]) => {
-  for (let i = 0, j = 0; i < 8; i += 1) {
-    const a0 = A[j++]
-    const a4 = A[j++]
-    const a2 = A[j++]
-    const a6 = A[j++]
-    const a1 = A[j++]
-    const a5 = A[j++]
-    const a3 = A[j++]
-    const a7 = A[j++]
-    B[i] = a0
-    B[i + 8] = a4
-    B[i + 16] = a2
-    B[i + 24] = a6
-    B[i + 32] = a1
-    B[i + 40] = a5
-    B[i + 48] = a3
-    B[i + 56] = a7
+  for (let i = 0; i < 8; i += 1) {
+    const f0 = A[0 * 8 + i]
+    const f1 = A[1 * 8 + i]
+    const f2 = A[2 * 8 + i]
+    const f3 = A[3 * 8 + i]
+    const f4 = A[4 * 8 + i]
+    const f5 = A[5 * 8 + i]
+    const f6 = A[6 * 8 + i]
+    const f7 = A[7 * 8 + i]
+    // Apply matrix G
+    const g0 = f0 + f7
+    const g1 = f1 + f6
+    const g2 = f2 + f5
+    const g3 = f3 + f4
+    const g4 = f3 - f4
+    const g5 = f2 - f5
+    const g6 = f1 - f6
+    const g7 = f0 - f7
+    B[i * 8 + 0] = g0
+    B[i * 8 + 1] = g1
+    B[i * 8 + 2] = g2
+    B[i * 8 + 3] = g3
+    B[i * 8 + 4] = g4
+    B[i * 8 + 5] = g5
+    B[i * 8 + 6] = g6
+    B[i * 8 + 7] = g7
   }
 }
 
