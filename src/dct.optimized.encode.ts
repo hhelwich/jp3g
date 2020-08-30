@@ -2,7 +2,7 @@ import { m1, m2, m3, m5, m6, m7 } from './dct.optimized.common'
 const { SQRT2 } = Math
 
 /**
- * TODO: Calculate B := (M/sqrt(8) * A)^t
+ * Calculate B := (M/sqrt(8) * A)^t
  */
 const multM = (A: number[], B: number[]) => {
   for (let i = 0; i < 8; i += 1) {
@@ -14,69 +14,32 @@ const multM = (A: number[], B: number[]) => {
     const a5 = A[5 * 8 + i]
     const a6 = A[6 * 8 + i]
     const a7 = A[7 * 8 + i]
-    // Apply matrix G
     const g0 = a0 + a7
     const g1 = a1 + a6
     const g2 = a2 + a5
     const g3 = a3 + a4
     const g4 = a3 - a4
-    const g5 = a2 - a5
-    const g6 = a1 - a6
     const g7 = a0 - a7
-    // Apply matrix F
     const f0 = g0 + g3
     const f1 = g1 + g2
     const f2 = g1 - g2
     const f3 = g0 - g3
-    const f4 = g4
-    const f5 = g5
-    const f6 = g6
-    const f7 = g7
-    // Apply matrix E
-    const e0 = f0
-    const e1 = f1
-    const e2 = f2
-    const e3 = f3
-    const e4 = f4
-    const e5 = f5 / SQRT2
-    const e6 = f6 / SQRT2
-    const e7 = f7
-    // Apply matrix D
-    const d0 = e0
-    const d1 = e1
-    const d2 = e2
-    const d3 = e3
-    const d4 = e4
+    const e5 = (a2 - a5) / SQRT2
+    const e6 = (a1 - a6) / SQRT2
     const d5 = e5 - e6
     const d6 = e5 + e6
-    const d7 = e7
-    // Apply matrix C
-    const c0 = d0
-    const c1 = d1
-    const c2 = d2
-    const c3 = d3
-    const c4 = d4 - d5
-    const c5 = d4 + d5
-    const c6 = -d6 + d7
-    const c7 = d6 + d7
-    // Apply matrix B
-    const b0 = c0 + c1
-    const b1 = c0 - c1
-    const b2 = m6 * c2 + m2 * c3
-    const b3 = -m2 * c2 + m6 * c3
-    const b4 = m7 * c4 + m1 * c7
-    const b5 = m3 * c5 + m5 * c6
-    const b6 = -m5 * c5 + m3 * c6
-    const b7 = -m1 * c4 + m7 * c7
-    // Apply matrix A
-    B[i * 8 + 0] = b0
-    B[i * 8 + 1] = b4
-    B[i * 8 + 2] = b2
-    B[i * 8 + 3] = b6
-    B[i * 8 + 4] = b1
-    B[i * 8 + 5] = b5
-    B[i * 8 + 6] = b3
-    B[i * 8 + 7] = b7
+    const c4 = g4 - d5
+    const c5 = g4 + d5
+    const c6 = g7 - d6
+    const c7 = d6 + g7
+    B[i * 8 + 0] = f0 + f1
+    B[i * 8 + 1] = m7 * c4 + m1 * c7
+    B[i * 8 + 2] = m6 * f2 + m2 * f3
+    B[i * 8 + 3] = m3 * c6 - m5 * c5
+    B[i * 8 + 4] = f0 - f1
+    B[i * 8 + 5] = m3 * c5 + m5 * c6
+    B[i * 8 + 6] = m6 * f3 - m2 * f2
+    B[i * 8 + 7] = m7 * c7 - m1 * c4
   }
 }
 
