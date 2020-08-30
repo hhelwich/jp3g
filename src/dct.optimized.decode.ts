@@ -94,20 +94,20 @@ export const M8 = mult8x8(
 )
 
 /**
- * Calculate (input * M8)^t
+ * Calculate (A * M8)^t
  */
-const multM = (input: number[]) => {
-  const output: number[] = []
-  for (let i = 0; i < 8; i += 1) {
+const multM = (A: number[]) => {
+  const B: number[] = []
+  for (let i = 0, j = 0; i < 8; i += 1) {
     // Apply matrix A
-    const a0 = input[i * 8 + 0]
-    const a1 = input[i * 8 + 4]
-    const a2 = input[i * 8 + 2]
-    const a3 = input[i * 8 + 6]
-    const a4 = input[i * 8 + 1]
-    const a5 = input[i * 8 + 5]
-    const a6 = input[i * 8 + 3]
-    const a7 = input[i * 8 + 7]
+    const a0 = A[j++]
+    const a4 = A[j++]
+    const a2 = A[j++]
+    const a6 = A[j++]
+    const a1 = A[j++]
+    const a5 = A[j++]
+    const a3 = A[j++]
+    const a7 = A[j++]
     // Apply matrix B
     const b0 = a0 + a1
     const b1 = a0 - a1
@@ -118,60 +118,29 @@ const multM = (input: number[]) => {
     const b6 = m5 * a5 + m3 * a6
     const b7 = m1 * a4 + m7 * a7
     // Apply matrix C
-    const c0 = b0
-    const c1 = b1
-    const c2 = b2
-    const c3 = b3
     const c4 = b4 + b5
-    const c5 = -b4 + b5
-    const c6 = -b6 + b7
+    const c5 = b5 - b4
+    const c6 = b7 - b6
     const c7 = b6 + b7
-    // Apply matrix D
-    const d0 = c0
-    const d1 = c1
-    const d2 = c2
-    const d3 = c3
-    const d4 = c4
-    const d5 = c5 + c6
-    const d6 = -c5 + c6
-    const d7 = c7
-    // Apply matrix E
-    const e0 = d0
-    const e1 = d1
-    const e2 = d2
-    const e3 = d3
-    const e4 = d4
-    const e5 = d5 / SQRT2
-    const e6 = d6 / SQRT2
-    const e7 = d7
+    // Apply matrix D & E
+    const e5 = (c5 + c6) / SQRT2
+    const e6 = (c6 - c5) / SQRT2
     // Apply matrix F
-    const f0 = e0 + e3
-    const f1 = e1 + e2
-    const f2 = e1 - e2
-    const f3 = e0 - e3
-    const f4 = e4
-    const f5 = e5
-    const f6 = e6
-    const f7 = e7
+    const f0 = b0 + b3
+    const f1 = b1 + b2
+    const f2 = b1 - b2
+    const f3 = b0 - b3
     // Apply matrix G
-    const g0 = f0 + f7
-    const g1 = f1 + f6
-    const g2 = f2 + f5
-    const g3 = f3 + f4
-    const g4 = f3 - f4
-    const g5 = f2 - f5
-    const g6 = f1 - f6
-    const g7 = f0 - f7
-    output[0 * 8 + i] = g0
-    output[1 * 8 + i] = g1
-    output[2 * 8 + i] = g2
-    output[3 * 8 + i] = g3
-    output[4 * 8 + i] = g4
-    output[5 * 8 + i] = g5
-    output[6 * 8 + i] = g6
-    output[7 * 8 + i] = g7
+    B[i] = f0 + c7
+    B[i + 8] = f1 + e6
+    B[i + 16] = f2 + e5
+    B[i + 24] = f3 + c4
+    B[i + 32] = f3 - c4
+    B[i + 40] = f2 - e5
+    B[i + 48] = f1 - e6
+    B[i + 56] = f0 - c7
   }
-  return output
+  return B
 }
 
 export const idct = (input: number[]) => multM(multM(input)).map(x => x / 8)
