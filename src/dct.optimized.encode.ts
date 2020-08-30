@@ -1,4 +1,4 @@
-import { m1, m2, m3, m5, m6, m7 } from './dct.optimized.common'
+import { m1, m2, m3, m5, m6, m7, multSym } from './dct.optimized.common'
 const { SQRT2 } = Math
 
 /**
@@ -43,17 +43,7 @@ const multM = (A: number[], B: number[]) => {
   }
 }
 
-const tmp: number[] = []
-
 /**
  * Floating point optimized DCT.
  */
-export const dct = (A: number[]) => {
-  multM(A, tmp)
-  const C: number[] = []
-  multM(tmp, C)
-  for (let i = 0; i < 64; i += 1) {
-    C[i] /= 8
-  }
-  return C
-}
+export const dct = multSym(multM)
