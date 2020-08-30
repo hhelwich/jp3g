@@ -1,13 +1,5 @@
-const { cos, PI, SQRT2 } = Math
-
-const m = (x: number) => SQRT2 * cos((x / 16) * PI)
-
-const m1 = m(1)
-const m2 = m(2)
-const m3 = m(3)
-const m5 = m(5)
-const m6 = m(6)
-const m7 = m(7)
+import { m1, m2, m3, m5, m6, m7 } from './dct.optimized.common'
+const { SQRT2 } = Math
 
 /**
  * Calculate B := (A * M/sqrt(8))^t
