@@ -1,13 +1,10 @@
-const { cos, PI, SQRT2 } = Math
-
-const m = (x: number) => SQRT2 * cos((x / 16) * PI)
-
-export const m1 = m(1)
-export const m2 = m(2)
-export const m3 = m(3)
-export const m5 = m(5)
-export const m6 = m(6)
-export const m7 = m(7)
+// mx := sqrt(2) * cos((x / 16) * PI)
+export const m1 = 1.3870398453221475
+export const m2 = 1.3065629648763766
+export const m3 = 1.1758756024193588
+export const m5 = 0.7856949583871023
+export const m6 = 0.5411961001461971
+export const m7 = 0.2758993792829431
 
 const tmp: number[] = []
 
