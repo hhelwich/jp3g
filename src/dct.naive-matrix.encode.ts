@@ -43,4 +43,4 @@ export const M = (() => {
 /**
  * Naive matrix form of the DCT: M * V * M^T
  */
-export const dct = (V: number[]) => mult8x8(mult8x8(M, V), transp8x8(M))
+export const dct = (V: number[]) => mult8x8(M, V, transp8x8(M))
