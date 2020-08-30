@@ -94,10 +94,9 @@ export const M8 = mult8x8(
 )
 
 /**
- * Calculate (A * M8)^t
+ * Calculate B = (A * M8)^t
  */
-const multM = (A: number[]) => {
-  const B: number[] = []
+const multM = (A: number[], B: number[]) => {
   for (let i = 0, j = 0; i < 8; i += 1) {
     // Apply matrix A
     const a0 = A[j++]
@@ -140,7 +139,16 @@ const multM = (A: number[]) => {
     B[i + 48] = f1 - e6
     B[i + 56] = f0 - c7
   }
-  return B
 }
 
-export const idct = (input: number[]) => multM(multM(input)).map(x => x / 8)
+const tmp: number[] = []
+
+export const idct = (A: number[]) => {
+  multM(A, tmp)
+  const C: number[] = []
+  multM(tmp, C)
+  for (let i = 0; i < 64; i += 1) {
+    C[i] /= 8
+  }
+  return C
+}
