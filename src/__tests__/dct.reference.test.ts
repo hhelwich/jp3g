@@ -1,7 +1,8 @@
-import { dct } from '../dct.naive.encode'
+import { dct } from '../dct.reference.encode'
+import { idct } from '../dct.reference.decode'
 
 // prettier-ignore
-export const g = [
+export const s = [
   -76, -73, -67, -62, -58, -67, -64, -55,
   -65, -69, -73, -38, -19, -43, -59, -56,
   -66, -69, -60, -15,  16, -24, -62, -55,
@@ -13,7 +14,7 @@ export const g = [
 ]
 
 // prettier-ignore
-export const G = [
+export const S = [
   -415.37, -30.19, -61.2 ,  27.24,  56.12, -20.1 , -2.39,  0.46,
      4.47, -21.86, -60.76,  10.25,  13.15,  -7.09, -8.54,  4.88,
    -46.83,   7.37,  77.13, -24.56, -28.91,   9.93,  5.42, -5.65,
@@ -24,10 +25,16 @@ export const G = [
     -0.17,   0.14,  -1.07,  -4.19,  -1.17,  -0.1 ,  0.5 ,  1.68,
 ]
 
-describe('DCT (naive)', () => {
-  it('returns expected result', () => {
-    let GActual = dct(g)
-    GActual = GActual.map(x => +x.toFixed(2))
-    expect(GActual).toEqual(G)
+describe('DCT reference', () => {
+  it('DCT returns the expected result', () => {
+    let GActual = dct(s)
+    GActual = dct(s).map(x => +x.toFixed(2))
+    expect(GActual).toEqual(S)
+  })
+  it('inverts naive DCT', () => {
+    const precision = 12
+    const G = dct(s)
+    const gActual = idct(G).map(x => +x.toFixed(precision))
+    expect(gActual).toEqual(s)
   })
 })

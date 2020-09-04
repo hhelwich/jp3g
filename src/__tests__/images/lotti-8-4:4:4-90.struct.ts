@@ -1,4 +1,4 @@
-import { Jpeg } from './jpeg'
+import { Jpeg } from '../../jpeg'
 
 const jpeg: Jpeg = [
   { type: 'SOI' },
