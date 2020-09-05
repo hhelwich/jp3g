@@ -128,7 +128,7 @@ export const decode = (jpeg: Uint8Array): Jpeg => {
         const headerLength = getUint16(jpeg, offset)
         offset += 2
         const componentCount = jpeg[offset++]
-        const components: ({ id: number; dcTbl: number; acTbl: number })[] = []
+        const components: { id: number; dcTbl: number; acTbl: number }[] = []
         for (let i = 0; i < componentCount; i += 1) {
           const id = jpeg[offset++]
           const [dcTbl, acTbl] = getHiLow(jpeg[offset++])

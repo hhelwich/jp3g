@@ -3,12 +3,11 @@
  * coefficients.
  */
 export const dequantize = (
-    quantumValues: number[],
-    quantizedCoeff: number[],
-    outCoeff: number[]
-  ) => {
-    for (let i = 0; i < 64; i += 1) {
-      outCoeff[i] = quantizedCoeff[i] * quantumValues[i]
-    }
+  quantumValues: number[],
+  quantizedCoeff: number[],
+  outCoeff: number[]
+) => {
+  for (let i = 0; i < 64; i += 1) {
+    outCoeff[i] = quantizedCoeff[i] * quantumValues[i]
   }
-  
+}
