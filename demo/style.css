@@ -1,0 +1,5 @@
+#canvas {
+  width: 150px;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: pixelated;
+}

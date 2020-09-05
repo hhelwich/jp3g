@@ -4,12 +4,11 @@
   const canvas = document.getElementById('canvas')
   const ctx = canvas.getContext('2d')
 
-  const image = new Image()
-  image.onload = () => {
-    canvas.width = image.width
-    canvas.height = image.height
-    canvas.style.width = '150px'
-    ctx.drawImage(image, 0, 0, image.width, image.height)
-  }
-  image.src = 'lotti.jpg'
+  const jpegData = await (await fetch('lotti.jpg')).arrayBuffer()
+
+  const imageData = await jp3g.decode(jpegData)
+
+  canvas.width = imageData.width
+  canvas.height = imageData.height
+  ctx.putImageData(imageData, 0, 0)
 })()
