@@ -1,14 +1,29 @@
 ;(async () => {
-  console.log(`Using jp3g ${jp3g.version}`)
-
   const canvas = document.getElementById('canvas')
   const ctx = canvas.getContext('2d')
 
-  const jpegData = await (await fetch('lotti.jpg')).arrayBuffer()
+  if (window.Worker) {
+    const jp3gWorker = new Worker('../dist/jp3g.min.js')
 
-  const imageData = await jp3g.decode(jpegData)
+    // console.log(`Using jp3g ${jp3g.version}`)
+    const jpegData = await (await fetch('lotti.jpg')).arrayBuffer()
 
-  canvas.width = imageData.width
-  canvas.height = imageData.height
-  ctx.putImageData(imageData, 0, 0)
+    jp3gWorker.postMessage(
+      {
+        action: 'decode',
+        buf: jpegData,
+      },
+      [jpegData]
+    )
+    jp3gWorker.onmessage = ({ data: { width, height, data } }) => {
+      canvas.width = width
+      canvas.height = height
+      const imageData = new ImageData(
+        new Uint8ClampedArray(data),
+        width,
+        height
+      )
+      ctx.putImageData(imageData, 0, 0)
+    }
+  }
 })()
