@@ -1,10 +1,17 @@
 import { version as _version } from '../package.json'
-import { isWorker } from './isNodeOrWorker'
+import { exportFunction } from './workers'
+export { setWorker } from './workers'
 
 // Create variable for correct type in d.ts file
 export const version = _version
 
-export const decode = async (buffer: ArrayBuffer) => {
+const _decode = async (
+  jpegData: ArrayBuffer
+): Promise<{
+  width: number
+  height: number
+  data: ArrayBuffer
+}> => {
   const width = 8
   const height = 8
   const data = new Uint8ClampedArray(width * height * 4)
@@ -19,11 +26,8 @@ export const decode = async (buffer: ArrayBuffer) => {
   return { width, height, data: data.buffer }
 }
 
-if (isWorker) {
-  onmessage = async ({ data: { action, buffer } }) => {
-    if (action === 'decode') {
-      const { width, height, data } = await decode(buffer)
-      postMessage({ msg: 'foo', width, height, data }, [data])
-    }
-  }
-}
+export const decode = exportFunction(
+  _decode,
+  fnIn => fnIn,
+  fnOut => [fnOut.data]
+)
