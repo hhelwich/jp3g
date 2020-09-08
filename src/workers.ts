@@ -18,7 +18,7 @@ type CallTermination<T> = [
 /**
  * Type of used functions that can be called both directly and in a worker.
  */
-type Fn = (...args: any[]) => Promise<any>
+type WorkerFunction = (...args: any[]) => PromiseLike<any>
 
 /**
  * The type of messages that are sent to the worker in order to call a function.
@@ -40,12 +40,13 @@ type UnwrapPromise<T> = T extends PromiseLike<infer U> ? U : T
  * All available functions that can be called both directly and in a worker.
  * In case a function is called in a worker, there are functions that extract
  * the transferables used in the inputs and outputs. This is required so that
- * the buffers can be transferred to the worker by reference instead by value.
+ * the buffers can be transferred between a worker and the main thread by
+ * reference instead by value.
  */
-const fns: [
-  fn: Fn,
-  inputTransferables: (fnIn: any[]) => ArrayBuffer[],
-  outputTransferables: (fnOut: any) => ArrayBuffer[]
+const workerFunctions: [
+  workerFunction: WorkerFunction,
+  inputTransferables: (args: any[]) => ArrayBuffer[],
+  outputTransferables: (result: any) => ArrayBuffer[]
 ][] = []
 
 /**
@@ -55,7 +56,7 @@ const fns: [
 let _workers: [worker: Worker, busy: boolean][] = []
 
 /**
- * Function call counter that is used to assign an ID to each function call.
+ * Function call counter that is used to create an ID for each function call.
  */
 let callCounter = 0
 
@@ -66,8 +67,8 @@ let callCounter = 0
 const activeCalls = new Map<number, CallTermination<unknown>>()
 
 /**
- * If all workers are busy, calls that have accrued are buffered in this queue
- * for later processing.
+ * If all workers are busy, calls that have been requested are buffered in this
+ * queue for later processing.
  */
 const waitingCalls: [
   message: MessageToWorker,
@@ -84,13 +85,13 @@ const notifyStartCall = (
 ) => {
   const [callId, fnId, args] = message
   activeCalls.set(callId, callTermination)
-  const [, inputTransferables] = fns[fnId]
+  const [, inputTransferables] = workerFunctions[fnId]
   const transferables = inputTransferables(args)
   worker.postMessage(message, transferables)
 }
 
 /**
- * Set zero to any number of workers which can be used to process functions.
+ * Set zero to any number of workers which should be used to process functions.
  */
 export const setWorker = (...workers: Worker[]) => {
   _workers = workers.map(worker => [worker, false])
@@ -124,13 +125,13 @@ export const setWorker = (...workers: Worker[]) => {
 /**
  * Proxy a function so that it can also be processed in a worker.
  */
-export const workerFunction = <F extends Fn>(
+export const workerFunction = <F extends WorkerFunction>(
   fn: F,
-  inputTransferables: (fnIn: Parameters<F>) => ArrayBuffer[],
-  outputTransferables: (fnOut: UnwrapPromise<ReturnType<F>>) => ArrayBuffer[]
+  inputTransferables: (args: Parameters<F>) => ArrayBuffer[],
+  outputTransferables: (result: UnwrapPromise<ReturnType<F>>) => ArrayBuffer[]
 ): F => {
-  const fnId = fns.length
-  fns.push([fn, inputTransferables as any, outputTransferables])
+  const fnId = workerFunctions.length
+  workerFunctions.push([fn, inputTransferables as any, outputTransferables])
   return ((...args) => {
     // If no workers available => Call function directly using JS queue.
     if (_workers.length === 0) {
@@ -161,7 +162,7 @@ if (environment === Environment.BrowserWorker) {
   onmessage = async ({ data }) => {
     const [callId, fnId, args]: MessageToWorker = data
     try {
-      const [fn, , outputTransferables] = fns[fnId]
+      const [fn, , outputTransferables] = workerFunctions[fnId]
       const result = await fn(...args)
       const message: MessageFromWorker<unknown> = [callId, result]
       const transferables = outputTransferables(result)
