@@ -1,5 +1,5 @@
 import { version as _version } from '../package.json'
-import { exportFunction } from './workers'
+import { workerFunction } from './workers'
 export { setWorker } from './workers'
 
 // Create variable for correct type in d.ts file
@@ -26,7 +26,7 @@ const _decode = async (
   return { width, height, data: data.buffer }
 }
 
-export const decode = exportFunction(
+export const decode = workerFunction(
   _decode,
   fnIn => fnIn,
   fnOut => [fnOut.data]
