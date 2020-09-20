@@ -125,9 +125,7 @@ const mainWorkerWithState: [WorkerWithState] = [
   (() => {
     let workerWithState: WorkerWithState
     const fakeWorkerOnMessage = onMessageToWorker(message => {
-      const event = { data: message } as MessageEvent<
-        MessageFromWorker<unknown>
-      >
+      const event = { data: message } as MessageEvent<MessageFromWorker<any>>
       workerWithState[0].onmessage!(event)
     })
     workerWithState = initWorker({
@@ -162,10 +160,10 @@ const notifyStartCall = (
 }
 
 /**
+ * Possibly waiting calls are passed on to not busy workers for processing.
  * This function is called on the main thread on every worker function call,
  * every time a worker has finished processing a function and when the workers
  * are changed.
- * Possibly waiting calls are passed on to not busy workers for processing.
  */
 const tryDistributeCalls = () => {
   for (const workerWithState of workersWithState) {
@@ -184,9 +182,9 @@ const tryDistributeCalls = () => {
 /**
  * Set zero to any number of workers which should be used to process functions.
  */
-export const setWorker = (..._workers: Worker[]) => {
-  if (_workers.length > 0) {
-    workersWithState = _workers.map(initWorker)
+export const setWorker = (...workers: Worker[]) => {
+  if (workers.length > 0) {
+    workersWithState = workers.map(initWorker)
   } else {
     workersWithState = mainWorkerWithState
   }
