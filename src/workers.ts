@@ -16,20 +16,25 @@ type CallTermination<T> = [
 ]
 
 /**
- * Type of used functions that can be called both directly and in a worker.
+ * Asynchronous function that can be called both directly and in a worker.
  */
 type WorkerFunction = (...args: any[]) => PromiseLike<any>
 
 /**
- * The type of messages that are sent to the worker in order to call a function.
+ * Message that is sent to the worker in order to call a function.
  */
 type MessageToWorker = [callId: number, fnId: number, args: unknown[]]
 
 /**
- * The type of messages sent back to the main thread by the worker after a
- * function has been completed.
+ * Message that is sent back to the main thread by the worker after a function
+ * has been completed.
  */
 type MessageFromWorker<T> = [callId: number, result?: T, errorMessage?: string]
+
+/**
+ * A worker an its state.
+ */
+type WorkerWithState = [worker: Worker, busy: boolean]
 
 /**
  * Extract the type wrapped in a promise type.
@@ -50,12 +55,6 @@ const workerFunctions: [
 ][] = []
 
 /**
- * The list of all available workers and the information whether they are
- * currently busy.
- */
-let _workers: [worker: Worker, busy: boolean][] = []
-
-/**
  * Function call counter that is used to create an ID for each function call.
  */
 let callCounter = 0
@@ -67,16 +66,88 @@ let callCounter = 0
 const activeCalls = new Map<number, CallTermination<unknown>>()
 
 /**
- * If all workers are busy, calls that have been requested are buffered in this
- * queue for later processing.
+ * If all workers are busy, calls are queued here for later processing.
  */
-const waitingCalls: [
+const callQueue: [
   message: MessageToWorker,
   callTermination: CallTermination<unknown>
 ][] = []
 
 /**
- * Notify an idle worker to initiate a function call.
+ * Creates a function that handles a function call in a worker.
+ */
+const onMessageToWorker = (
+  postMessageFromWorker: (
+    message: MessageFromWorker<unknown>,
+    transfer?: ArrayBuffer[]
+  ) => void
+) => async ({ data: [callId, fnId, args] }: MessageEvent<MessageToWorker>) => {
+  try {
+    const [fn, , outputTransferables] = workerFunctions[fnId]
+    const result = await fn(...args)
+    const message: MessageFromWorker<unknown> = [callId, result]
+    const transferables = outputTransferables(result)
+    postMessageFromWorker(message, transferables)
+  } catch (e) {
+    const message: MessageFromWorker<void> = [callId, , e.message]
+    postMessageFromWorker(message)
+  }
+}
+
+/**
+ * Initializes a new worker in the main thread: Sets a function to receive
+ * messages from the worker and initializes the status of the worker as idle.
+ */
+const initWorker = (worker: Worker): WorkerWithState => {
+  const workerWithState: WorkerWithState = [worker, false]
+  worker.onmessage = ({
+    data: [callId, result, errorMessage],
+  }: MessageEvent<MessageFromWorker<unknown>>) => {
+    // Mark worker as idle
+    workerWithState[1] = false
+    // Terminate function call
+    const [resolve, reject] = activeCalls.get(callId) as CallTermination<any>
+    activeCalls.delete(callId)
+    if (errorMessage) {
+      reject(Error(errorMessage))
+    } else {
+      resolve(result)
+    }
+  }
+  return workerWithState
+}
+
+/**
+ * In case no workers are set, this fake worker is used to process the functions
+ * in the main thread.
+ */
+const mainWorkerWithState: [WorkerWithState] = [
+  (() => {
+    let workerWithState: WorkerWithState
+    const fakeWorkerOnMessage = onMessageToWorker(message => {
+      const event = { data: message } as MessageEvent<
+        MessageFromWorker<unknown>
+      >
+      workerWithState[0].onmessage!(event)
+    })
+    workerWithState = initWorker({
+      postMessage: (message: MessageToWorker) => {
+        const event = { data: message } as MessageEvent<MessageToWorker>
+        fakeWorkerOnMessage(event)
+      },
+    } as Worker)
+    return workerWithState
+  })(),
+]
+
+/**
+ * The list of all available workers and the information whether they are
+ * currently busy.
+ */
+let workersWithState: WorkerWithState[] = mainWorkerWithState
+
+/**
+ * Notify an idle worker from the main thread to initiate a function call.
  */
 const notifyStartCall = (
   worker: Worker,
@@ -91,39 +162,42 @@ const notifyStartCall = (
 }
 
 /**
+ * This function is called on the main thread on every worker function call,
+ * every time a worker has finished processing a function and when the workers
+ * are changed.
+ * Possibly waiting calls are passed on to not busy workers for processing.
+ */
+const tryDistributeCalls = () => {
+  for (const workerWithState of workersWithState) {
+    const busy = workerWithState[1]
+    if (!busy) {
+      const nextCall = callQueue.shift()
+      if (!nextCall) {
+        return
+      }
+      workerWithState[1] = true
+      notifyStartCall(workerWithState[0], ...nextCall)
+    }
+  }
+}
+
+/**
  * Set zero to any number of workers which should be used to process functions.
  */
-export const setWorker = (...workers: Worker[]) => {
-  _workers = workers.map(worker => [worker, false])
-  _workers.forEach(workerInfo => {
-    const [worker] = workerInfo
-    worker.onmessage = ({ data }) => {
-      const [callId, result, errorMessage]: MessageFromWorker<unknown> = data
-      // Terminate function
-      const [resolve, reject] = activeCalls.get(callId) as CallTermination<
-        unknown
-      >
-      activeCalls.delete(callId)
-      if (errorMessage) {
-        reject(Error(errorMessage))
-      } else {
-        resolve(result)
-      }
-      // Apply next action if available
-      /* TODO Use the same code as when queuing a new function call.
-       * This should prevent outdated workers to be used and simplify logic. */
-      const nextCall = waitingCalls.shift()
-      if (nextCall) {
-        notifyStartCall(worker, ...nextCall)
-      } else {
-        workerInfo[1] = false
-      }
-    }
-  })
+export const setWorker = (..._workers: Worker[]) => {
+  if (_workers.length > 0) {
+    workersWithState = _workers.map(initWorker)
+  } else {
+    workersWithState = mainWorkerWithState
+  }
+  tryDistributeCalls()
 }
 
 /**
  * Proxy a function so that it can also be processed in a worker.
+ * To pass ArrayBuffers by reference instead of by value, functions must be
+ * specified which extract the ArrayBuffers from the function's inputs and
+ * outputs.
  */
 export const workerFunction = <F extends WorkerFunction>(
   fn: F,
@@ -131,27 +205,21 @@ export const workerFunction = <F extends WorkerFunction>(
   outputTransferables: (result: UnwrapPromise<ReturnType<F>>) => ArrayBuffer[]
 ): F => {
   const fnId = workerFunctions.length
-  workerFunctions.push([fn, inputTransferables as any, outputTransferables])
+  workerFunctions.push([
+    fn,
+    inputTransferables as (args: any[]) => ArrayBuffer[],
+    outputTransferables,
+  ])
   return ((...args) => {
-    // If no workers available => Call function directly using JS queue.
-    if (_workers.length === 0) {
-      /* TODO Also use function queue? This should prevent functions on the JS
-       * queue when workers are added later. */
-      return fn(args)
-    }
-    // Process function in idle worker or queue for later processing in worker.
-    return new Promise((resolve, reject) => {
+    // Queue function for processing
+    const p: PromiseLike<any> = new Promise((resolve, reject) => {
       const callTermination: CallTermination<unknown> = [resolve, reject]
       const message: MessageToWorker = [callCounter++, fnId, args]
-      // Send message to first not busy worker or add to queue if all are busy
-      const firstNotBusyWorker = _workers.find(([, busy]) => !busy)
-      if (firstNotBusyWorker) {
-        firstNotBusyWorker[1] = true
-        notifyStartCall(firstNotBusyWorker[0], message, callTermination)
-      } else {
-        waitingCalls.push([message, callTermination])
-      }
+      callQueue.push([message, callTermination])
+      tryDistributeCalls()
     })
+    p.then(tryDistributeCalls, tryDistributeCalls)
+    return p
   }) as F
 }
 
@@ -159,17 +227,5 @@ export const workerFunction = <F extends WorkerFunction>(
  * Process function calls in the worker.
  */
 if (environment === Environment.BrowserWorker) {
-  onmessage = async ({ data }) => {
-    const [callId, fnId, args]: MessageToWorker = data
-    try {
-      const [fn, , outputTransferables] = workerFunctions[fnId]
-      const result = await fn(...args)
-      const message: MessageFromWorker<unknown> = [callId, result]
-      const transferables = outputTransferables(result)
-      postMessage(message, transferables)
-    } catch (e) {
-      const message: MessageFromWorker<void> = [callId, , e.message]
-      postMessage(message)
-    }
-  }
+  onmessage = onMessageToWorker(postMessage as any)
 }
