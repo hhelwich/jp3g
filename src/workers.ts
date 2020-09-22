@@ -50,8 +50,8 @@ type UnwrapPromise<T> = T extends PromiseLike<infer U> ? U : T
  */
 const workerFunctions: [
   workerFunction: WorkerFunction,
-  inputTransferables: (args: any[]) => ArrayBuffer[],
-  outputTransferables: (result: any) => ArrayBuffer[]
+  inputTransfer: (args: any[]) => ArrayBuffer[],
+  outputTransfer: (result: any) => ArrayBuffer[]
 ][] = []
 
 /**
@@ -61,12 +61,12 @@ let callCounter = 0
 
 /**
  * For all currently running calls, it maps the call ID to the termination
- * callbacks and is used to end the calls.
+ * callbacks which are used to end the calls.
  */
 const activeCalls = new Map<number, CallTermination<unknown>>()
 
 /**
- * If all workers are busy, calls are queued here for later processing.
+ * Calls are queued here for later processing.
  */
 const callQueue: [
   message: MessageToWorker,
@@ -74,7 +74,7 @@ const callQueue: [
 ][] = []
 
 /**
- * Creates a function that handles a function call in a worker.
+ * Creates a worker handler that applies a function call on receiving a message.
  */
 const onMessageToWorker = (
   postMessageFromWorker: (
@@ -83,11 +83,11 @@ const onMessageToWorker = (
   ) => void
 ) => async ({ data: [callId, fnId, args] }: MessageEvent<MessageToWorker>) => {
   try {
-    const [fn, , outputTransferables] = workerFunctions[fnId]
+    const [fn, , outputTransfer] = workerFunctions[fnId]
     const result = await fn(...args)
     const message: MessageFromWorker<unknown> = [callId, result]
-    const transferables = outputTransferables(result)
-    postMessageFromWorker(message, transferables)
+    const transfer = outputTransfer(result)
+    postMessageFromWorker(message, transfer)
   } catch (e) {
     const message: MessageFromWorker<void> = [callId, , e.message]
     postMessageFromWorker(message)
@@ -118,25 +118,28 @@ const initWorker = (worker: Worker): WorkerWithState => {
 }
 
 /**
+ * Returns a fake worker that works in the same thread.
+ */
+const fakeWorker = (): Worker => {
+  let worker: Worker
+  const fakeWorkerOnMessage = onMessageToWorker(message => {
+    const event = { data: message } as MessageEvent<MessageFromWorker<any>>
+    worker.onmessage!(event)
+  })
+  worker = {
+    postMessage: (message: MessageToWorker) => {
+      const event = { data: message } as MessageEvent<MessageToWorker>
+      fakeWorkerOnMessage(event)
+    },
+  } as Worker
+  return worker
+}
+
+/**
  * In case no workers are set, this fake worker is used to process the functions
  * in the main thread.
  */
-const mainWorkerWithState: [WorkerWithState] = [
-  (() => {
-    let workerWithState: WorkerWithState
-    const fakeWorkerOnMessage = onMessageToWorker(message => {
-      const event = { data: message } as MessageEvent<MessageFromWorker<any>>
-      workerWithState[0].onmessage!(event)
-    })
-    workerWithState = initWorker({
-      postMessage: (message: MessageToWorker) => {
-        const event = { data: message } as MessageEvent<MessageToWorker>
-        fakeWorkerOnMessage(event)
-      },
-    } as Worker)
-    return workerWithState
-  })(),
-]
+const mainWorkerWithState: [WorkerWithState] = [initWorker(fakeWorker())]
 
 /**
  * The list of all available workers and the information whether they are
@@ -154,13 +157,13 @@ const notifyStartCall = (
 ) => {
   const [callId, fnId, args] = message
   activeCalls.set(callId, callTermination)
-  const [, inputTransferables] = workerFunctions[fnId]
-  const transferables = inputTransferables(args)
-  worker.postMessage(message, transferables)
+  const [, inputTransfer] = workerFunctions[fnId]
+  const transfer = inputTransfer(args)
+  worker.postMessage(message, transfer)
 }
 
 /**
- * Possibly waiting calls are passed on to not busy workers for processing.
+ * Waiting calls are passed on to idle workers for processing.
  * This function is called on the main thread on every worker function call,
  * every time a worker has finished processing a function and when the workers
  * are changed.
@@ -199,30 +202,30 @@ export const setWorker = (...workers: Worker[]) => {
  */
 export const workerFunction = <F extends WorkerFunction>(
   fn: F,
-  inputTransferables: (args: Parameters<F>) => ArrayBuffer[],
-  outputTransferables: (result: UnwrapPromise<ReturnType<F>>) => ArrayBuffer[]
+  inputTransfer: (args: Parameters<F>) => ArrayBuffer[],
+  outputTransfer: (result: UnwrapPromise<ReturnType<F>>) => ArrayBuffer[]
 ): F => {
   const fnId = workerFunctions.length
   workerFunctions.push([
     fn,
-    inputTransferables as (args: any[]) => ArrayBuffer[],
-    outputTransferables,
+    inputTransfer as (args: any[]) => ArrayBuffer[],
+    outputTransfer,
   ])
   return ((...args) => {
-    // Queue function for processing
-    const p: PromiseLike<any> = new Promise((resolve, reject) => {
+    // Queue call for processing
+    const result: PromiseLike<any> = new Promise((resolve, reject) => {
       const callTermination: CallTermination<unknown> = [resolve, reject]
       const message: MessageToWorker = [callCounter++, fnId, args]
       callQueue.push([message, callTermination])
       tryDistributeCalls()
     })
-    p.then(tryDistributeCalls, tryDistributeCalls)
-    return p
+    result.then(tryDistributeCalls, tryDistributeCalls)
+    return result
   }) as F
 }
 
 /**
- * Process function calls in the worker.
+ * Register function call handler in the worker.
  */
 if (environment === Environment.BrowserWorker) {
   onmessage = onMessageToWorker(postMessage as any)
