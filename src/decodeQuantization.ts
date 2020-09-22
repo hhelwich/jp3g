@@ -1,5 +1,5 @@
 import { DQT, DQT_TABLE, zigZag } from './jpeg'
-import { getHiLow, getUint16 } from './decode'
+import { getHiLow, getUint16 } from './decode-common'
 import { InvalidJpegError } from './InvalidJpegError'
 
 const getUint8or16 = (bytes: 1 | 2) =>

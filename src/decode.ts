@@ -14,9 +14,7 @@ import {
 } from './jpeg'
 import { decodeDHT } from './huffman-decode'
 import { decodeDQT } from './decodeQuantization'
-
-export const getUint16 = (data: Uint8Array, offset: number) =>
-  (data[offset] << 8) | data[offset + 1]
+import { getHiLow, getUint16 } from './decode-common'
 
 const isRestartMarker = (marker: number) => 0xd0 <= marker && marker <= 0xd7
 
@@ -31,11 +29,6 @@ const isMarkerSOF = (marker: number) =>
   marker !== MARKER_DHT &&
   marker !== 0xc8 /* Reserved */ &&
   marker !== 0xcc /* DAC (Define arithmetic coding conditions) */
-
-/**
- * Split a byte in high and low part
- */
-export const getHiLow = (byte: number) => [byte >> 4, byte & 0xf]
 
 export const decodeAPP = (appType: number, data: Uint8Array): APP => ({
   type: 'APP',
