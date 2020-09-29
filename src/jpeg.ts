@@ -1,10 +1,12 @@
-export const MARKER_SOI = 0xd8 // Start of image
-export const MARKER_COM = 0xfe // Comment
-export const MARKER_DQT = 0xdb // Define quantization tables
-export const MARKER_DHT = 0xc4 // Define huffman table
-export const MARKER_SOS = 0xda // Start of scan
-export const MARKER_EOI = 0xd9 // End of image
-export const MARKER_SOF0 = 0xc0 // Start of frame, baseline
+export const enum Marker {
+  SOI = 0xd8, // Start of image
+  COM = 0xfe, // Comment
+  DQT = 0xdb, // Define quantization tables
+  DHT = 0xc4, // Define huffman table
+  SOS = 0xda, // Start of scan
+  EOI = 0xd9, // End of image
+  SOF0 = 0xc0, // Start of frame, baseline
+}
 
 // Map zigzag ordered list index to original 8x8 matrix index
 // prettier-ignore
@@ -68,12 +70,12 @@ export interface SOF {
   precision: number
   width: number
   height: number
-  components: ({
+  components: {
     id: number
     h: number
     v: number
     qId: number
-  })[]
+  }[]
 }
 
 export interface SOS {

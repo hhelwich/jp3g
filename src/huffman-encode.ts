@@ -1,4 +1,4 @@
-import { DHT, MARKER_DHT, HuffmanTree } from './jpeg'
+import { DHT, Marker, HuffmanTree } from './jpeg'
 import { setUint16, setHiLow } from './encode'
 import { InvalidJpegError } from './InvalidJpegError'
 
@@ -72,7 +72,7 @@ export const getDhtLength = ({ tables }: DHT) =>
 
 export const encodeDHT = (segment: DHT, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = 0xff
-  buffer[offset++] = MARKER_DHT
+  buffer[offset++] = Marker.DHT
   setUint16(buffer, offset, getDhtLength(segment) - 2)
   offset += 2
   for (const { cls, id, tree } of segment.tables) {

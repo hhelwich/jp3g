@@ -1,14 +1,4 @@
-import {
-  MARKER_SOI,
-  MARKER_COM,
-  MARKER_SOF0,
-  MARKER_SOS,
-  MARKER_EOI,
-  Jpeg,
-  Segment,
-  SOF,
-  SOS,
-} from './jpeg'
+import { Marker, Jpeg, Segment, SOF, SOS } from './jpeg'
 import { getDhtLength, encodeDHT } from './huffman-encode'
 import { encodeDQT, getDqtLength } from './encodeQuantization'
 
@@ -47,7 +37,7 @@ const segmentLength = (segment: Segment): number => {
 
 const encodeSOF = (segment: SOF, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = 0xff
-  buffer[offset++] = MARKER_SOF0 | segment.frameType
+  buffer[offset++] = Marker.SOF0 | segment.frameType
   setUint16(buffer, offset, getSofLength(segment) - 2)
   offset += 2
   buffer[offset++] = segment.precision
@@ -66,7 +56,7 @@ const encodeSOF = (segment: SOF, offset: number, buffer: Uint8Array) => {
 
 const encodeSOS = (segment: SOS, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = 0xff
-  buffer[offset++] = MARKER_SOS
+  buffer[offset++] = Marker.SOS
   const length = segment.components.length * 2 + 6
   setUint16(buffer, offset, length)
   offset += 2
@@ -90,7 +80,7 @@ const encodeSegment = (
   switch (segment.type) {
     case 'SOI':
       buffer[offset++] = 0xff
-      buffer[offset++] = MARKER_SOI
+      buffer[offset++] = Marker.SOI
       break
     case 'APP': {
       buffer[offset++] = 0xff
@@ -103,7 +93,7 @@ const encodeSegment = (
     }
     case 'COM': {
       buffer[offset++] = 0xff
-      buffer[offset++] = MARKER_COM
+      buffer[offset++] = Marker.COM
       const length = segment.text.length
       setUint16(buffer, offset, length + 2)
       offset += 2
@@ -123,7 +113,7 @@ const encodeSegment = (
       return encodeSOS(segment, offset, buffer)
     case 'EOI':
       buffer[offset++] = 0xff
-      buffer[offset++] = MARKER_EOI
+      buffer[offset++] = Marker.EOI
       break
   }
   return offset

@@ -1,4 +1,4 @@
-import { DQT, MARKER_DQT, zigZag } from './jpeg'
+import { DQT, Marker, zigZag } from './jpeg'
 import { setUint16, setHiLow } from './encode'
 
 export const getDqtLength = (dqt: DQT) =>
@@ -13,7 +13,7 @@ const setUint8or16 = (bytes: 1 | 2) =>
 
 export const encodeDQT = (dqt: DQT, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = 0xff
-  buffer[offset++] = MARKER_DQT
+  buffer[offset++] = Marker.DQT
   const length = getDqtLength(dqt) - 2
   const { tables } = dqt
   setUint16(buffer, offset, length)

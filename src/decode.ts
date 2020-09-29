@@ -1,17 +1,5 @@
 import { InvalidJpegError } from './InvalidJpegError'
-import {
-  APP,
-  COM,
-  SOF,
-  Jpeg,
-  MARKER_SOI,
-  MARKER_COM,
-  MARKER_DQT,
-  MARKER_DHT,
-  MARKER_SOF0,
-  MARKER_SOS,
-  MARKER_EOI,
-} from './jpeg'
+import { APP, COM, SOF, Jpeg, Marker } from './jpeg'
 import { decodeDHT } from './huffman-decode'
 import { decodeDQT } from './decodeQuantization'
 import { getHiLow, getUint16 } from './decode-common'
@@ -24,9 +12,9 @@ const isRestartMarker = (marker: number) => 0xd0 <= marker && marker <= 0xd7
 const isAppMarker = (marker: number) => 0xe0 <= marker && marker <= 0xef
 
 const isMarkerSOF = (marker: number) =>
-  MARKER_SOF0 <= marker &&
+  Marker.SOF0 <= marker &&
   marker <= 0xcf &&
-  marker !== MARKER_DHT &&
+  marker !== Marker.DHT &&
   marker !== 0xc8 /* Reserved */ &&
   marker !== 0xcc /* DAC (Define arithmetic coding conditions) */
 
@@ -98,7 +86,7 @@ export const getDiff = (partialDiff: number, bitLength: number) =>
  */
 export const decode = (jpeg: Uint8Array): Jpeg => {
   // JPEG must start with a SOI marker
-  if (jpeg[0] !== 0xff || jpeg[1] !== MARKER_SOI) {
+  if (jpeg[0] !== 0xff || jpeg[1] !== Marker.SOI) {
     throw new InvalidJpegError('Missing SOI marker')
   }
 
@@ -117,7 +105,7 @@ export const decode = (jpeg: Uint8Array): Jpeg => {
       }
       // Set segment start after marker so segStart + segLength === segEnd
       const segStart = ++offset
-      if (byte === MARKER_SOS) {
+      if (byte === Marker.SOS) {
         const headerLength = getUint16(jpeg, offset)
         offset += 2
         const componentCount = jpeg[offset++]
@@ -156,7 +144,7 @@ export const decode = (jpeg: Uint8Array): Jpeg => {
           }
         }
         break
-      } else if (byte === MARKER_EOI) {
+      } else if (byte === Marker.EOI) {
         result.push({ type: 'EOI' })
         // TODO Add segment if data after EOI
         return result
@@ -167,11 +155,11 @@ export const decode = (jpeg: Uint8Array): Jpeg => {
         }
         offset = segEnd = segStart + segLength
         const d = jpeg.subarray(segStart + 2, segEnd)
-        if (byte === MARKER_DQT) {
+        if (byte === Marker.DQT) {
           result.push(decodeDQT(d))
-        } else if (byte === MARKER_DHT) {
+        } else if (byte === Marker.DHT) {
           result.push(decodeDHT(d))
-        } else if (byte === MARKER_COM) {
+        } else if (byte === Marker.COM) {
           result.push(decodeCOM(d))
         } else if (isAppMarker(byte)) {
           result.push(decodeAPP(byte & 0xf, d))
