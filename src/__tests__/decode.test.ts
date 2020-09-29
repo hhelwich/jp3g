@@ -1,10 +1,12 @@
-import { decode, getDiff } from './decode'
-import { encode } from './encode'
-import { InvalidJpegError } from './InvalidJpegError'
-import jpegSmallExpected from '../images/small'
-import jpegSmallGuetzliExpected from '../images/small-guetzli'
+import { decode, getDiff } from '../decode'
+import { encode } from '../encode'
+import { InvalidJpegError } from '../InvalidJpegError'
+import jpegSmallExpected from '../../images/small'
+import jpegSmallGuetzliExpected from '../../images/small-guetzli'
 import { readImageFile } from './testUtil'
+import jpegLotti8 from './images/lotti-8-4:4:4-90.struct'
 
+/*
 const jpeg8x8 = readImageFile('8x8')
 const jpegFillBytes = readImageFile('8x8-fill-bytes')
 const jpegDataAfterEOI = readImageFile('8x8-data-after-eoi')
@@ -16,7 +18,7 @@ const smallDataAfterSof = readImageFile('invalid/small-data-after-sof')
 const smallDataAfterDht = readImageFile('invalid/small-data-after-dht')
 const jpegSmall = readImageFile('small')
 const jpegSmallGuetzli = readImageFile('small-guetzli')
-
+*/
 describe('getDiff', () => {
   it('returns correct result up to bit length 31', () => {
     expect(getDiff(0, 0)).toBe(0)
@@ -30,7 +32,7 @@ describe('getDiff', () => {
     }
   })
 })
-
+/*
 describe('decode', () => {
   it('returns correct JPEG structure', () => {
     expect(decode(jpegSmall)).toEqual(jpegSmallExpected)
@@ -81,3 +83,9 @@ describe('decode', () => {
     expect(reencoded).toEqual(jpeg8x8)
   })
 })
+describe('8x8 test', () => {
+  it('returns correct JPEG structure', () => {
+    expect(decode(readImageFile('lotti-8-4:4:4-90'))).toEqual(jpegLotti8)
+  })
+})
+*/

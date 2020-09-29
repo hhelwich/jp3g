@@ -1,4 +1,4 @@
-import { zigZag } from './jpeg'
+import { zigZag } from '../jpeg'
 import { range } from './testUtil'
 
 describe('jpeg', () => {

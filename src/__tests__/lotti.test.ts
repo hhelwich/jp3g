@@ -26,7 +26,6 @@ describe('Test image', () => {
       .raw()
       .ensureAlpha()
       .toBuffer()
-
     expect(data).toEqual(Array.from(expectedData))
   })
 })

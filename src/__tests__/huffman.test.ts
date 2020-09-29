@@ -1,6 +1,6 @@
 import { range } from './testUtil'
-import { getHuffmanTree } from './huffman-decode'
-import { getHuffmanCodeCounts } from './huffman-encode'
+import { getHuffmanTree } from '../huffman-decode'
+import { getHuffmanCodeCounts } from '../huffman-encode'
 
 describe('huffman', () => {
   describe('getHuffmanTree', () => {
@@ -37,7 +37,19 @@ describe('huffman', () => {
           counts: [0, 1, 1, 10],
           symbols: range(12),
         })
-      ).toEqual([[0, [1, [2, 3]]], [[[4, 5], [6, 7]], [[8, 9], [10, 11]]]])
+      ).toEqual([
+        [0, [1, [2, 3]]],
+        [
+          [
+            [4, 5],
+            [6, 7],
+          ],
+          [
+            [8, 9],
+            [10, 11],
+          ],
+        ],
+      ])
     })
     it('throws on overfull tree', () => {
       expect(() => {
@@ -60,8 +72,23 @@ describe('huffman', () => {
         [0, [1, [2, 3]]],
         [
           [
-            [[4, 5], [6, [7, 8]]],
-            [[[9, 10], [11, [12, 13]]], [[[14, 15], [16, 17]], [[18, 19]]]],
+            [
+              [4, 5],
+              [6, [7, 8]],
+            ],
+            [
+              [
+                [9, 10],
+                [11, [12, 13]],
+              ],
+              [
+                [
+                  [14, 15],
+                  [16, 17],
+                ],
+                [[18, 19]],
+              ],
+            ],
           ],
         ],
       ])
@@ -72,7 +99,10 @@ describe('huffman', () => {
       expect(getHuffmanCodeCounts([])).toEqual({ counts: [], symbols: [] })
     })
     it('returns correct counts & symbols for single symbol with code length 1', () => {
-      expect(getHuffmanCodeCounts([42])).toEqual({ counts: [1], symbols: [42] })
+      expect(getHuffmanCodeCounts([42])).toEqual({
+        counts: [1],
+        symbols: [42],
+      })
     })
     it('returns correct counts & symbols for single symbol with code length 4', () => {
       expect(getHuffmanCodeCounts([[[[42]]]])).toEqual({
@@ -86,8 +116,23 @@ describe('huffman', () => {
           [0, [1, [2, 3]]],
           [
             [
-              [[4, 5], [6, [7, 8]]],
-              [[[9, 10], [11, [12, 13]]], [[[14, 15], [16, 17]], [[18, 19]]]],
+              [
+                [4, 5],
+                [6, [7, 8]],
+              ],
+              [
+                [
+                  [9, 10],
+                  [11, [12, 13]],
+                ],
+                [
+                  [
+                    [14, 15],
+                    [16, 17],
+                  ],
+                  [[18, 19]],
+                ],
+              ],
             ],
           ],
         ])

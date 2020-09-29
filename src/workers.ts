@@ -120,7 +120,7 @@ const initWorker = (worker: Worker): WorkerWithState => {
 /**
  * Returns a fake worker that works in the same thread.
  */
-const fakeWorker = (): Worker => {
+export const fakeWorker = (): Worker => {
   let worker: Worker
   const fakeWorkerOnMessage = onMessageToWorker(message => {
     const event = { data: message } as MessageEvent<MessageFromWorker<any>>

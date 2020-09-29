@@ -15,18 +15,11 @@
 
       const struct = await jp3g.decodeStruct(jpegData)
 
-      console.log(JSON.stringify(struct, null, 2))
+      const imageData = await jp3g.decodeImage(struct)
 
-      /*
-      canvas.width = width
-      canvas.height = height
-      const imageData = new ImageData(
-        new Uint8ClampedArray(data),
-        width,
-        height
-      )
+      canvas.width = imageData.width
+      canvas.height = imageData.height
       ctx.putImageData(imageData, 0, 0)
-      */
     }
   } catch (e) {
     console.error('error', e)
