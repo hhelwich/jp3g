@@ -1,12 +1,13 @@
 import { rgb2YCbCr } from '../color-rgb.encode'
 import { yCbCr2Rgb } from '../color-rgb.decode'
+import { range } from '../util'
 
 /**
  * Use n = 256 to cover all possible values of a byte. Use smaller values if the
  * tests take too long.
  */
 const range255 = (n: number) =>
-  [...Array(n)].map((_, i) => Math.round((255 * i) / (n - 1)))
+  range(n).map(i => Math.round((255 * i) / (n - 1)))
 
 describe('RGB <-> YCbCr', () => {
   it('YCbCr is in expected range', () => {

@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import { promisify } from 'util'
-import { range } from './testUtil'
+import { range } from '../util'
 import { HuffmanTree, zigZag, SOS, DHT } from '../jpeg'
 import jpegLotti8Struct from './images/lotti-8-4:4:4-90.struct'
 import jpegLotti8Coeff from './images/lotti-8-4:4:4-90.qcoeff'

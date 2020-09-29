@@ -1,3 +1,5 @@
+import { range } from './util'
+
 const { cos, sqrt, PI } = Math
 
 /**
@@ -6,7 +8,7 @@ const { cos, sqrt, PI } = Math
 export const mult = (...As: number[][]) =>
   As.reduce((A, B): number[] => {
     const n = sqrt(A.length)
-    const C = [...Array(n ** 2)].map(_ => 0)
+    const C = range(n ** 2).map(() => 0)
     for (let i = 0; i < n; i += 1) {
       for (let j = 0; j < n; j += 1) {
         for (let k = 0; k < n; k += 1) {
