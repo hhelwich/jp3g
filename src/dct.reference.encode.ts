@@ -1,4 +1,6 @@
-const { cos, PI, SQRT2 } = Math
+import { C } from './dct.reference.common'
+
+const { cos, PI } = Math
 
 /**
  * The ideal functional definition of the forward DCT taken from the JPEG
@@ -16,8 +18,6 @@ export const dct = (s: number[]) => {
   }
   return result
 }
-
-export const C = (u: number) => (u === 0 ? 1 / SQRT2 : 1)
 
 const S = (s: number[], u: number, v: number) => {
   let sum = 0

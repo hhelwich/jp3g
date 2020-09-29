@@ -1,5 +1,6 @@
+import { C } from './dct.reference.common'
+
 const { cos, PI } = Math
-import { C } from './dct.reference.encode'
 
 /**
  * The ideal functional definition of the inverse DCT taken from the JPEG
