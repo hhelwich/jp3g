@@ -6,12 +6,9 @@
     if (window.Worker) {
       console.log(`Using jp3g ${jp3g.version}`)
 
-      const workerCount = 3
-      jp3g.setWorker(
-        ...[...Array(workerCount)].map(() => new Worker('../dist/jp3g.js'))
-      )
+      jp3g.setWorker(new Worker('../dist/jp3g.js'))
 
-      const jpegData = await (await fetch('lotti.jpg')).arrayBuffer()
+      const jpegData = await (await fetch('image.jpg')).arrayBuffer()
 
       const struct = await jp3g.decodeStruct(jpegData)
 
