@@ -1,9 +1,3 @@
-export const add64 = (x: number) => (input: number[]) => {
-  const output: number[] = []
-  for (let i = 0; i < 64; i += 1) {
-    output[i] = input[i] + x
-  }
-  return output
-}
+import { add64 } from './dct.reference.common'
 
 export const center = add64(-128)
