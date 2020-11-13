@@ -13,7 +13,7 @@ export declare const fakeWorker: () => Worker;
 /**
  * Set zero to any number of workers which should be used to process functions.
  */
-export declare const setWorker: (...workers: Worker[]) => void;
+export declare const setWorkers: (...workers: Worker[]) => void;
 /**
  * Proxy a function so that it can also be processed in a worker.
  * To pass ArrayBuffers by reference instead of by value, functions must be

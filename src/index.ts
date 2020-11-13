@@ -1,7 +1,7 @@
 import { version as _version } from '../package.json'
 import { Jpeg, SOS, APP } from './jpeg'
 import { workerFunction } from './workers'
-export { setWorker } from './workers'
+export { setWorkers } from './workers'
 import { decodeJpeg } from './jpeg.decode'
 import { identity } from './util'
 import { decodeFrame } from './frame.decode'

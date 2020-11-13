@@ -186,7 +186,7 @@ const tryDistributeCalls = () => {
 /**
  * Set zero to any number of workers which should be used to process functions.
  */
-export const setWorker = (...workers: Worker[]) => {
+export const setWorkers = (...workers: Worker[]) => {
   if (workers.length > 0) {
     workersWithState = workers.map(initWorker)
   } else {

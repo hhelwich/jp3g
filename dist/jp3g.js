@@ -226,7 +226,7 @@
     /**
      * Set zero to any number of workers which should be used to process functions.
      */
-    var setWorker = function () {
+    var setWorkers = function () {
         var workers = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             workers[_i] = arguments[_i];
@@ -943,7 +943,7 @@
 
     exports.decode = decode;
     exports.decodeImage = decodeImage;
-    exports.setWorker = setWorker;
+    exports.setWorkers = setWorkers;
     exports.version = version$1;
 
     Object.defineProperty(exports, '__esModule', { value: true });

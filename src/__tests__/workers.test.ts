@@ -1,8 +1,8 @@
-import { setWorker, workerFunction, fakeWorker } from '../workers'
+import { setWorkers, workerFunction, fakeWorker } from '../workers'
 
 describe('workers', () => {
   describe('workerFunction', () => {
-    setWorker(fakeWorker())
+    setWorkers(fakeWorker())
     const plus = workerFunction(
       async (a: number, b: number) => {
         if (b === 0) {
