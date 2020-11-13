@@ -1,5 +1,5 @@
-import { dct } from '../dct.reference.encode'
-import { idct } from '../dct.reference.decode'
+import { dct } from '../dctReference.encode'
+import { idct } from '../dctReference.decode'
 
 // prettier-ignore
 export const s = [

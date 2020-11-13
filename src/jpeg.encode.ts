@@ -1,6 +1,6 @@
 import { Marker, Jpeg, Segment, SOF, SOS } from './jpeg'
-import { getDhtLength, encodeDHT } from './huffman-encode'
-import { encodeDQT, getDqtLength } from './encodeQuantization'
+import { getDhtLength, encodeDHT } from './huffmanTable.encode'
+import { encodeDQT, getDqtLength } from './quantizationTable.encode'
 
 export const setUint16 = (data: Uint8Array, offset: number, value: number) => {
   data[offset] = value >> 8
@@ -119,7 +119,7 @@ const encodeSegment = (
   return offset
 }
 
-export const encode = (jpeg: Jpeg): Uint8Array => {
+export const encodeJpeg = (jpeg: Jpeg): Uint8Array => {
   const size = jpeg.reduce((sum, segment) => sum + segmentLength(segment), 0)
   const buffer = createBuffer(size)
   let offset = 0

@@ -13,7 +13,7 @@
   "scripts": {
     "test": "jest",
     "format": "prettier --write .",
-    "build": "del-cli dist && rollup -c && tsc -d --emitDeclarationOnly --resolveJsonModule --declarationDir dist --lib ES2019.Array,WebWorker src/jp3g.ts && mv dist/src/ dist/types"
+    "build": "del-cli dist && rollup -c && tsc -d --emitDeclarationOnly --resolveJsonModule --declarationDir dist --lib ES2019.Array,WebWorker src/index.ts && mv dist/src/ dist/types"
   },
   "devDependencies": {
     "@rollup/plugin-json": "^4.1.0",

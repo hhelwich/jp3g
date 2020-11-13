@@ -1,7 +1,7 @@
-import { dct as dctReference } from '../dct.reference.encode'
-import { idct as idctReference } from '../dct.reference.decode'
-import { dct } from '../dct.optimized.encode'
-import { idct } from '../dct.optimized.decode'
+import { dct as dctReference } from '../dctReference.encode'
+import { idct as idctReference } from '../dctReference.decode'
+import { dct } from '../dctOptimized.encode'
+import { idct } from '../dctOptimized.decode'
 import { S, s } from './dct.reference.test'
 
 describe('DCT (optimized)', () => {

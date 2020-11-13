@@ -1,5 +1,5 @@
 import qcoeff from './images/lotti-8-4:4:4-90.qcoeff'
-import struct from './images/lotti-8-4:4:4-90.struct'
+import struct from './images/lotti-8-4:4:4-90'
 import coeff from './images/lotti-8-4:4:4-90.coeff'
 import { DQT } from '../jpeg'
 import { dequantize } from '../quantization.decode'

@@ -1,6 +1,6 @@
 import { range } from '../util'
-import { getHuffmanTree } from '../huffman-decode'
-import { getHuffmanCodeCounts } from '../huffman-encode'
+import { getHuffmanTree } from '../huffmanTable.decode'
+import { getHuffmanCodeCounts } from '../huffmanTable.encode'
 
 describe('huffman', () => {
   describe('getHuffmanTree', () => {

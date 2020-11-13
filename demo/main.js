@@ -10,9 +10,9 @@
 
       const jpegData = await (await fetch('image.jpg')).arrayBuffer()
 
-      const struct = await jp3g.decodeStruct(jpegData)
+      const jpeg = await jp3g.decode(jpegData)
 
-      const imageData = await jp3g.decodeImage(struct)
+      const imageData = await jp3g.decodeImage(jpeg)
 
       canvas.width = imageData.width
       canvas.height = imageData.height

@@ -1,5 +1,5 @@
 import { DHT, DHT_TABLE, HuffmanTree } from './jpeg'
-import { getHiLow } from './decode-common'
+import { getHiLow } from './common.decode'
 import { InvalidJpegError } from './InvalidJpegError'
 
 /**

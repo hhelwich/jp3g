@@ -1,9 +1,9 @@
-import { dct as dctReference } from '../dct.reference.encode'
+import { dct as dctReference } from '../dctReference.encode'
 import { s } from './dct.reference.test'
-import { dct } from '../dct.naive-matrix.encode'
-import { idct as idctReference } from '../dct.reference.decode'
+import { dct } from '../dctNaiveMatrix.encode'
+import { idct as idctReference } from '../dctReference.decode'
 import { S } from './dct.reference.test'
-import { idct } from '../dct.naive-matrix.decode'
+import { idct } from '../dctNaiveMatrix.decode'
 
 describe('DCT (naive matrix form)', () => {
   it('equals result of reference DCT', () => {

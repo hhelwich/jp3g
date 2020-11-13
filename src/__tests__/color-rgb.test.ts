@@ -1,5 +1,5 @@
-import { rgb2YCbCr } from '../color-rgb.encode'
-import { yCbCr2Rgb } from '../color-rgb.decode'
+import { rgb2YCbCr } from '../colorRgb.encode'
+import { yCbCr2Rgb } from '../colorRgb.decode'
 import { range } from '../util'
 
 /**

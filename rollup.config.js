@@ -3,7 +3,7 @@ import json from '@rollup/plugin-json'
 import { terser } from 'rollup-plugin-terser'
 
 const config = ({ minify }) => ({
-  input: 'src/jp3g.ts',
+  input: 'src/index.ts',
   output: {
     file: `dist/jp3g${minify ? '.min' : ''}.js`,
     format: 'umd',

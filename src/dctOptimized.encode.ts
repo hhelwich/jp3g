@@ -1,4 +1,4 @@
-import { m1, m2, m3, m5, m6, m7, multSym } from './dct.optimized.common'
+import { m1, m2, m3, m5, m6, m7, multSym } from './dctOptimized.common'
 const { SQRT2 } = Math
 
 /**

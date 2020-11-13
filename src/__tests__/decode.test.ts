@@ -1,10 +1,10 @@
-import { decode, getDiff } from '../decode'
-import { encode } from '../encode'
+import { decodeJpeg, getDiff } from '../jpeg.decode'
+import { encodeJpeg } from '../jpeg.encode'
 import { InvalidJpegError } from '../InvalidJpegError'
 import jpegSmallExpected from '../../images/small'
 import jpegSmallGuetzliExpected from '../../images/small-guetzli'
 import { readImageFile } from './testUtil'
-import jpegLotti8 from './images/lotti-8-4:4:4-90.struct'
+import jpegLotti8 from './images/lotti-8-4:4:4-90'
 
 /*
 const jpeg8x8 = readImageFile('8x8')

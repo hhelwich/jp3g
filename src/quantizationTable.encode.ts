@@ -1,5 +1,5 @@
 import { DQT, Marker, zigZag } from './jpeg'
-import { setUint16, setHiLow } from './encode'
+import { setUint16, setHiLow } from './jpeg.encode'
 
 export const getDqtLength = (dqt: DQT) =>
   dqt.tables.reduce((length, { bytes }) => length + bytes * 64 + 1, 4)

@@ -1,5 +1,5 @@
 import { DHT, Marker, HuffmanTree } from './jpeg'
-import { setUint16, setHiLow } from './encode'
+import { setUint16, setHiLow } from './jpeg.encode'
 import { InvalidJpegError } from './InvalidJpegError'
 
 /**

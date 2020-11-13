@@ -2,8 +2,9 @@ import { version as _version } from '../package.json'
 import { Jpeg, SOS, APP } from './jpeg'
 import { workerFunction } from './workers'
 export { setWorker } from './workers'
-import { decode } from './decode'
+import { decodeJpeg } from './jpeg.decode'
 import { identity } from './util'
+import { decodeFrame } from './frame.decode'
 
 // Create variable for correct type in d.ts file (will be removed my minifier)
 export const version = _version
@@ -22,17 +23,15 @@ const getJpegBuffer = (jpeg: Jpeg): ArrayBufferLike[] =>
       | SOS
   )
 
-const _decodeStruct = async (jpegData: ArrayBufferLike): Promise<Jpeg> =>
-  decode(new Uint8Array(jpegData))
+const _decode = async (jpegData: ArrayBufferLike): Promise<Jpeg> =>
+  decodeJpeg(new Uint8Array(jpegData))
 
-const _decodeImage = async (jpeg: Jpeg): Promise<ImageData> =>
-  new ImageData(new Uint8ClampedArray(8 * 8 * 4).fill(111), 8, 8)
+const _decodeImage = async (jpeg: Jpeg): Promise<ImageData> => {
+  const { data, width, height } = decodeFrame(jpeg)
+  return new ImageData(data, width, height)
+}
 
-export const decodeStruct = workerFunction(
-  _decodeStruct,
-  identity,
-  getJpegBuffer
-)
+export const decode = workerFunction(_decode, identity, getJpegBuffer)
 
 export const decodeImage = workerFunction(
   _decodeImage,

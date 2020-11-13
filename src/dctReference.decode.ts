@@ -1,4 +1,4 @@
-import { C } from './dct.reference.common'
+import { C } from './dctReference.common'
 
 const { cos, PI } = Math
 

@@ -1,4 +1,4 @@
-import { mult, transp, M } from './dct.naive-matrix.encode'
+import { mult, transp, M } from './dctNaiveMatrix.encode'
 
 /**
  * Naive matrix form of the inverse DCT: M^T * T * M

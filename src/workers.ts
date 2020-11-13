@@ -109,6 +109,7 @@ const initWorker = (worker: Worker): WorkerWithState => {
     const [resolve, reject] = activeCalls.get(callId) as CallTermination<any>
     activeCalls.delete(callId)
     if (errorMessage) {
+      // TODO Preserve error type or remove special error types
       reject(Error(errorMessage))
     } else {
       resolve(result)
