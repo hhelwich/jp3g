@@ -9,7 +9,7 @@
   "author": "Hendrik Helwich <hendrik@helwich.de>",
   "repository": "github:hhelwich/jpeg-js",
   "main": "dist/jp3g.min.js",
-  "types": "dist/types/jp3g.d.ts",
+  "types": "dist/types/index.d.ts",
   "scripts": {
     "test": "jest",
     "format": "prettier --write .",
