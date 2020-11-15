@@ -118,8 +118,8 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
             for (let j = 0; j < h; j += 1) {
               //
               const qcoeff = getCoeff(
-                huffmanTablesDC[component.dcTbl],
-                huffmanTablesAC[component.acTbl]
+                huffmanTablesDC[component.dcId],
+                huffmanTablesAC[component.acId]
               )
               //
               const coeff: number[] = []

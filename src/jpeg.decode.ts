@@ -109,11 +109,11 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
         const headerLength = getUint16(jpeg, offset)
         offset += 2
         const componentCount = jpeg[offset++]
-        const components: { id: number; dcTbl: number; acTbl: number }[] = []
+        const components: { id: number; dcId: number; acId: number }[] = []
         for (let i = 0; i < componentCount; i += 1) {
           const id = jpeg[offset++]
-          const [dcTbl, acTbl] = getHiLow(jpeg[offset++])
-          components.push({ id, dcTbl, acTbl })
+          const [dcId, acId] = getHiLow(jpeg[offset++])
+          components.push({ id, dcId, acId })
         }
         // Next 3 bytes are only used in progressive mode
         const specStart = jpeg[offset++] // Spectral selection start (0-63)

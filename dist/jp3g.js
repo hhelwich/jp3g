@@ -497,8 +497,8 @@
                     var components = [];
                     for (var i = 0; i < componentCount; i += 1) {
                         var id = jpeg[offset++];
-                        var _a = getHiLow(jpeg[offset++]), dcTbl = _a[0], acTbl = _a[1];
-                        components.push({ id: id, dcTbl: dcTbl, acTbl: acTbl });
+                        var _a = getHiLow(jpeg[offset++]), dcId = _a[0], acId = _a[1];
+                        components.push({ id: id, dcId: dcId, acId: acId });
                     }
                     // Next 3 bytes are only used in progressive mode
                     var specStart = jpeg[offset++]; // Spectral selection start (0-63)
@@ -758,7 +758,7 @@
                         for (var i = 0; i < v; i += 1) {
                             for (var j = 0; j < h; j += 1) {
                                 //
-                                var qcoeff = getCoeff(huffmanTablesDC[component.dcTbl], huffmanTablesAC[component.acTbl]);
+                                var qcoeff = getCoeff(huffmanTablesDC[component.dcId], huffmanTablesAC[component.acId]);
                                 //
                                 var coeff = [];
                                 dequantize(quantizationTable.values, qcoeff, coeff);

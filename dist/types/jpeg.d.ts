@@ -84,8 +84,8 @@ export declare type SOS = {
     data: Uint8Array;
     components: {
         id: number;
-        dcTbl: number;
-        acTbl: number;
+        dcId: number;
+        acId: number;
     }[];
     specStart: number;
     specEnd: number;

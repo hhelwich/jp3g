@@ -103,7 +103,7 @@ export type SOF = {
 export type SOS = {
   type: 'SOS'
   data: Uint8Array
-  components: { id: number; dcTbl: number; acTbl: number }[]
+  components: { id: number; dcId: number; acId: number }[]
   specStart: number
   specEnd: number
   ah: number

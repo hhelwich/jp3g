@@ -61,9 +61,9 @@ const encodeSOS = (segment: SOS, offset: number, buffer: Uint8Array) => {
   setUint16(buffer, offset, length)
   offset += 2
   buffer[offset++] = segment.components.length
-  for (const { id, dcTbl, acTbl } of segment.components) {
+  for (const { id, dcId, acId } of segment.components) {
     buffer[offset++] = id
-    buffer[offset++] = setHiLow(dcTbl, acTbl)
+    buffer[offset++] = setHiLow(dcId, acId)
   }
   buffer[offset++] = segment.specStart
   buffer[offset++] = segment.specEnd

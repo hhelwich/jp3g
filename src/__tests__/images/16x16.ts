@@ -141,9 +141,9 @@ const jpeg: Jpeg = [
   {
     type: 'SOS',
     components: [
-      { id: 1, dcTbl: 0, acTbl: 0 },
-      { id: 2, dcTbl: 1, acTbl: 1 },
-      { id: 3, dcTbl: 1, acTbl: 1 },
+      { id: 1, dcId: 0, acId: 0 },
+      { id: 2, dcId: 1, acId: 1 },
+      { id: 3, dcId: 1, acId: 1 },
     ],
     specStart: 0,
     specEnd: 63,
