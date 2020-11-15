@@ -1,6 +1,7 @@
 // npm install canvas
 // npx tsc src/__tests__/createTestImages.ts
 // node src/__tests__/createTestImages.js
+// Remove canvas from package.json
 
 import { writeFileSync } from 'fs'
 import { createCanvas } from 'canvas'
@@ -26,13 +27,15 @@ const createTestImage = (width: number, height: number) => {
       // Stretch angle so red, green and blue are in the corners
       const h = a <= 180 ? (a / 3) * 4 : (a / 3) * 2 + 120
       let l = 50
+      let s = 100
       // Fade lightness in the middle of image to have black and white pixel
       if (x >= sx0 && x < sx1 && y >= sy0 && y < sy1) {
         const nx = (x - sx0) / (sx1 - sx0 - 1)
         const ny = (y - sy0) / (sy1 - sy0 - 1)
         l = Math.sqrt((nx + ny) ** 2 / 4) * 100
+        s = 50
       }
-      ctx.fillStyle = `hsl(${h},100%,${l}%)`
+      ctx.fillStyle = `hsl(${h},${s}%,${l}%)`
       ctx.fillRect(x, y, 1, 1)
     }
   }
@@ -40,3 +43,7 @@ const createTestImage = (width: number, height: number) => {
 }
 
 writeFileSync('src/__tests__/images/8x8-original.png', createTestImage(8, 8))
+writeFileSync(
+  'src/__tests__/images/16x16-original.png',
+  createTestImage(16, 16)
+)
