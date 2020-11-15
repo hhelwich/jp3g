@@ -1,12 +1,4 @@
-import {
-  DQT_TABLE,
-  HuffmanTree,
-  Jpeg,
-  Segment,
-  SegmentForType,
-  SOF,
-  zigZag,
-} from './jpeg'
+import { DQT_TABLE, HuffmanTree, Jpeg, Segment, SOF, zigZag } from './jpeg'
 import { InvalidJpegError } from './InvalidJpegError'
 import { dequantize } from './quantization.decode'
 import { idct } from './dctOptimized.decode'
@@ -44,9 +36,7 @@ export const prepareScanDecode = (sof: SOF) => {
   }
 }
 
-export const decodeFrame = (
-  jpeg: Jpeg
-): { data: Uint8ClampedArray; width: number; height: number } => {
+export const decodeFrame = (jpeg: Jpeg): ImageData => {
   const huffmanTables: [HuffmanTree[], HuffmanTree[]] = [[], []]
   const quantizationTables: DQT_TABLE[] = []
   let frameComponents: SOF['components'] = []
@@ -158,9 +148,6 @@ export const decodeFrame = (
   }
   return data
 }
-
-const getSegmentsOfType = <T extends Segment['type']>(jpeg: Jpeg, type: T) =>
-  jpeg.filter(segment => segment.type === type) as SegmentForType<T>[]
 
 // [Bitmap] <-> Sampling <-> DCT <-> Quantization <-> Huffman Coding <-> [JPEG]
 

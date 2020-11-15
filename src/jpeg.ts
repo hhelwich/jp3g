@@ -21,28 +21,28 @@ export const zigZag = new Uint8Array([
   53, 60, 61, 54, 47, 55, 62, 63,
 ])
 
-export interface SOI {
+export type SOI = {
   type: 'SOI'
 }
 
-export interface APP {
+export type APP = {
   type: 'APP'
   appType: number
   data: Uint8Array
 }
 
-export interface COM {
+export type COM = {
   type: 'COM'
   text: string
 }
 
-export interface DQT_TABLE {
+export type DQT_TABLE = {
   id: 0 | 1 | 2 | 3
   bytes: 1 | 2
   values: number[]
 }
 
-export interface DQT {
+export type DQT = {
   type: 'DQT'
   tables: DQT_TABLE[]
 }
@@ -53,7 +53,7 @@ export interface DQT {
  */
 export interface HuffmanTree extends Array<HuffmanTree | number> {}
 
-export interface DHT_TABLE {
+export type DHT_TABLE = {
   /**
    * Can store integers from 0 to 15 but only 0 (DC) or 1 (AC) are valid.
    */
@@ -66,12 +66,12 @@ export interface DHT_TABLE {
   tree: HuffmanTree
 }
 
-export interface DHT {
+export type DHT = {
   type: 'DHT'
   tables: DHT_TABLE[]
 }
 
-export interface SOF {
+export type SOF = {
   type: 'SOF'
   frameType: number
   /** Sample precision in bits (8, 12). */
@@ -100,7 +100,7 @@ export interface SOF {
   }[]
 }
 
-export interface SOS {
+export type SOS = {
   type: 'SOS'
   data: Uint8Array
   components: { id: number; dcTbl: number; acTbl: number }[]
@@ -110,28 +110,10 @@ export interface SOS {
   al: number
 }
 
-export interface EOI {
+export type EOI = {
   type: 'EOI'
 }
 
 export type Segment = SOI | APP | COM | DQT | DHT | SOF | SOS | EOI
-
-export type SegmentForType<T extends Segment['type']> = T extends 'SOI'
-  ? SOI
-  : T extends 'APP'
-  ? APP
-  : T extends 'COM'
-  ? COM
-  : T extends 'DQT'
-  ? DQT
-  : T extends 'DHT'
-  ? DHT
-  : T extends 'SOF'
-  ? SOF
-  : T extends 'SOS'
-  ? SOS
-  : T extends 'EOI'
-  ? EOI
-  : never
 
 export type Jpeg = Segment[]

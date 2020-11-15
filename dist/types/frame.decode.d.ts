@@ -14,11 +14,7 @@ export declare const prepareScanDecode: (sof: SOF) => {
         blocksPerColumn: number;
     }[];
 };
-export declare const decodeFrame: (jpeg: Jpeg) => {
-    data: Uint8ClampedArray;
-    width: number;
-    height: number;
-};
+export declare const decodeFrame: (jpeg: Jpeg) => ImageData;
 export declare const decodeFns: (data: Uint8Array) => {
     nextBit: () => number;
     nextHuffmanByte: (tree: HuffmanTree) => number;

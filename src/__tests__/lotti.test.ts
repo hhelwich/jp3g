@@ -9,7 +9,7 @@ import { decodeFrame } from '../frame.decode'
 
 describe('Test image', () => {
   it('baz', async () => {
-    const jpegData = readImageFile('lotti-8-4:4:4-90')
+    const jpegData = readImageFile('lotti-8-4:4:4-90.jpg')
     const jpeg = decodeJpeg(jpegData)
     const imageData = decodeFrame(jpeg)
     const expectedData = await sharp(
