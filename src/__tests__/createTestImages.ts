@@ -42,8 +42,14 @@ const createTestImage = (width: number, height: number) => {
   return canvas.toBuffer()
 }
 
-writeFileSync('src/__tests__/images/8x8-original.png', createTestImage(8, 8))
-writeFileSync(
-  'src/__tests__/images/16x16-original.png',
-  createTestImage(16, 16)
-)
+;[
+  [8, 8],
+  [16, 16],
+  [32, 32],
+  [7, 11],
+].forEach(([width, height]) => {
+  writeFileSync(
+    `src/__tests__/images/${width}x${height}-original.png`,
+    createTestImage(width, height)
+  )
+})
