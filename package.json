@@ -12,6 +12,7 @@
   "types": "dist/types/index.d.ts",
   "scripts": {
     "test": "jest",
+    "test-watch": "jest --watch",
     "format": "prettier --write .",
     "build": "del-cli dist && rollup -c && tsc -d --emitDeclarationOnly --resolveJsonModule --declarationDir dist --lib ES2019.Array,WebWorker src/index.ts && mv dist/src/ dist/types"
   },
@@ -26,7 +27,7 @@
     "prettier": "^2.1.2",
     "rollup": "^2.33.2",
     "rollup-plugin-terser": "^7.0.2",
-    "sharp": "^0.26.2",
+    "sharp": "^0.26.3",
     "ts-jest": "^26.4.4",
     "tslib": "^2.0.3",
     "typescript": "^4.0.5"

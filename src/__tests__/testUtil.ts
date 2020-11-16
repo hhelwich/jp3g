@@ -22,8 +22,8 @@ export const readImageDataFromPng = async (
     image.toBuffer(),
   ])
   return {
-    width,
-    height,
+    width: width!,
+    height: height!,
     data: new Uint8ClampedArray(data),
   }
 }
