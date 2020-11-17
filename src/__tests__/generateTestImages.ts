@@ -42,6 +42,7 @@ const createTestImage = (width: number, height: number) => {
 
 ;[
   [8, 8],
+  [16, 8],
   [16, 16],
   [32, 32],
   [7, 11],
