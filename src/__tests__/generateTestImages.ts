@@ -1,8 +1,3 @@
-// npm install canvas
-// npx tsc src/__tests__/createTestImages.ts
-// node src/__tests__/createTestImages.js
-// Remove canvas from package.json
-
 import { writeFileSync } from 'fs'
 import { createCanvas } from 'canvas'
 
@@ -11,6 +6,7 @@ import { createCanvas } from 'canvas'
  * and white pixels and fades between them.
  */
 const createTestImage = (width: number, height: number) => {
+  // Create canvas
   const canvas = createCanvas(width, height)
   const ctx = canvas.getContext('2d')
   // Center of the image
@@ -21,6 +17,7 @@ const createTestImage = (width: number, height: number) => {
   const sx1 = Math.round((width / 4) * 3)
   const sy0 = Math.round(height / 4)
   const sy1 = Math.round((height / 4) * 3)
+  // Calculate pixels
   for (let x = 0; x < width; x += 1) {
     for (let y = 0; y < height; y += 1) {
       const a = ((Math.atan2(y - cy, x - cx) / Math.PI) * 180 + 495) % 360
@@ -39,6 +36,7 @@ const createTestImage = (width: number, height: number) => {
       ctx.fillRect(x, y, 1, 1)
     }
   }
+  // Convert to PNG
   return canvas.toBuffer()
 }
 
