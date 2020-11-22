@@ -1,15 +1,11 @@
 import { InvalidJpegError } from './InvalidJpegError'
-import { APP, COM, SOF, Jpeg, Marker } from './jpeg'
+import { SOF, Jpeg, Marker } from './jpeg'
 import { decodeDHT } from './huffmanTable.decode'
 import { decodeDQT } from './quantizationTable.decode'
 import { getHiLow, getUint16 } from './common.decode'
+import { decodeAPP, isAppMarker, decodeCOM } from './app.decode'
 
 const isRestartMarker = (marker: number) => 0xd0 <= marker && marker <= 0xd7
-
-/**
- * Returns true if marker is APP0-APP15 (application-specific data)
- */
-const isAppMarker = (marker: number) => 0xe0 <= marker && marker <= 0xef
 
 const isMarkerSOF = (marker: number) =>
   Marker.SOF0 <= marker &&
@@ -17,17 +13,6 @@ const isMarkerSOF = (marker: number) =>
   marker !== Marker.DHT &&
   marker !== 0xc8 /* Reserved */ &&
   marker !== 0xcc /* DAC (Define arithmetic coding conditions) */
-
-export const decodeAPP = (appType: number, data: Uint8Array): APP => ({
-  type: 'APP',
-  appType,
-  data,
-})
-
-export const decodeCOM = (data: Uint8Array): COM => ({
-  type: 'COM',
-  text: String.fromCharCode.apply(null, <any>data),
-})
 
 /**
  * Decode SOF (Start of frame) segment

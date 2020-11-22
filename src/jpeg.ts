@@ -21,8 +21,24 @@ export const zigZag = new Uint8Array([
   53, 60, 61, 54, 47, 55, 62, 63,
 ])
 
+export const jfifId = 'JFIF'
+
+export const enum JFIFUnits {
+  PixelAspectRatio = 0,
+  DotsPerInch = 1,
+  DotsPerCm = 2,
+}
+
 export type SOI = {
   type: 'SOI'
+}
+
+export type JFIF = {
+  type: 'JFIF'
+  version: [number, number]
+  units: number
+  density: { x: number; y: number }
+  thumbnail?: { x: number; y: number; data: Uint8Array }
 }
 
 export type APP = {
@@ -114,6 +130,6 @@ export type EOI = {
   type: 'EOI'
 }
 
-export type Segment = SOI | APP | COM | DQT | DHT | SOF | SOS | EOI
+export type Segment = SOI | JFIF | APP | COM | DQT | DHT | SOF | SOS | EOI
 
 export type Jpeg = Segment[]

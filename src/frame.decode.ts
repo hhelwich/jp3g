@@ -40,7 +40,7 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
   const huffmanTables: [HuffmanTree[], HuffmanTree[]] = [[], []]
   const quantizationTables: DQT_TABLE[] = []
   let frameComponents: SOF['components'] = []
-  let data: { data: Uint8ClampedArray; width: number; height: number } = {
+  let data: ImageData = {
     data: new Uint8ClampedArray(),
     width: 0,
     height: 0,
@@ -86,11 +86,11 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
         for (const component of segment.components) {
           frameComponents[component.id] = component
         }
-        // Get the data unit size in pixels for each component
-        const dataUnitSizes = segment.components.map(({ h, v }) => ({
-          x: (8 * hMax) / h,
-          y: (8 * vMax) / v,
-        }))
+        // Get the image area size a data unit spans for each component
+        const dataUnitSizes = segment.components.map(({ h, v }) => [
+          (8 * hMax) / h,
+          (8 * vMax) / v,
+        ])
         // data unit: An 8 × 8 block of samples of one component
         // horizontal sampling factor: The relative number of horizontal data units of a particular component with respect
         //   to the number of horizontal data units in the other components.
@@ -140,7 +140,6 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
           data.data[i * 4 + 2] = b
           data.data[i * 4 + 3] = 255
         }
-
         break
       case 'EOI':
         break segmentLoop

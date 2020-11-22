@@ -1,10 +1,12 @@
 import { Marker, Jpeg, Segment, SOF, SOS } from './jpeg'
 import { getDhtLength, encodeDHT } from './huffmanTable.encode'
 import { encodeDQT, getDqtLength } from './quantizationTable.encode'
+import { encodeAPP, encodeCOM } from './app.encode'
 
 export const setUint16 = (data: Uint8Array, offset: number, value: number) => {
-  data[offset] = value >> 8
-  data[offset + 1] = value & 0xff
+  data[offset++] = value >> 8
+  data[offset++] = value & 0xff
+  return offset
 }
 
 export const setHiLow = (high: number, low: number) => (high << 4) | low
@@ -22,6 +24,8 @@ const segmentLength = (segment: Segment): number => {
       return 2
     case 'APP':
       return segment.data.length + 4
+    case 'JFIF':
+      return (segment.thumbnail?.data.length ?? 0) + 14
     case 'COM':
       return segment.text.length + 4
     case 'DQT':
@@ -38,13 +42,10 @@ const segmentLength = (segment: Segment): number => {
 const encodeSOF = (segment: SOF, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = 0xff
   buffer[offset++] = Marker.SOF0 | segment.frameType
-  setUint16(buffer, offset, getSofLength(segment) - 2)
-  offset += 2
+  offset = setUint16(buffer, offset, getSofLength(segment) - 2)
   buffer[offset++] = segment.precision
-  setUint16(buffer, offset, segment.height)
-  offset += 2
-  setUint16(buffer, offset, segment.width)
-  offset += 2
+  offset = setUint16(buffer, offset, segment.height)
+  offset = setUint16(buffer, offset, segment.width)
   buffer[offset++] = segment.components.length
   for (const component of segment.components) {
     buffer[offset++] = component.id
@@ -58,8 +59,7 @@ const encodeSOS = (segment: SOS, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = 0xff
   buffer[offset++] = Marker.SOS
   const length = segment.components.length * 2 + 6
-  setUint16(buffer, offset, length)
-  offset += 2
+  offset = setUint16(buffer, offset, length)
   buffer[offset++] = segment.components.length
   for (const { id, dcId, acId } of segment.components) {
     buffer[offset++] = id
@@ -83,24 +83,11 @@ const encodeSegment = (
       buffer[offset++] = Marker.SOI
       break
     case 'APP': {
-      buffer[offset++] = 0xff
-      buffer[offset++] = 0xe0 | segment.appType
-      const length = segment.data.length + 2
-      setUint16(buffer, offset, length)
-      buffer.set(segment.data, offset + 2)
-      offset += length
+      offset = encodeAPP(segment, offset, buffer)
       break
     }
     case 'COM': {
-      buffer[offset++] = 0xff
-      buffer[offset++] = Marker.COM
-      const length = segment.text.length
-      setUint16(buffer, offset, length + 2)
-      offset += 2
-      for (let i = 0; i < length; i += 1) {
-        buffer[offset + i] = segment.text.charCodeAt(i)
-      }
-      offset += length
+      offset = encodeCOM(segment, offset, buffer)
       break
     }
     case 'DQT':

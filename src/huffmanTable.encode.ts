@@ -73,8 +73,7 @@ export const getDhtLength = ({ tables }: DHT) =>
 export const encodeDHT = (segment: DHT, offset: number, buffer: Uint8Array) => {
   buffer[offset++] = 0xff
   buffer[offset++] = Marker.DHT
-  setUint16(buffer, offset, getDhtLength(segment) - 2)
-  offset += 2
+  offset = setUint16(buffer, offset, getDhtLength(segment) - 2)
   for (const { cls, id, tree } of segment.tables) {
     buffer[offset++] = setHiLow(cls, id)
     const { counts, symbols } = getHuffmanCodeCounts(tree)
