@@ -1,4 +1,17 @@
-import { Marker, Jpeg, Segment, SOF, SOS } from './jpeg'
+import {
+  Marker,
+  Jpeg,
+  Segment,
+  SOF,
+  SOS,
+  DHT,
+  SOI,
+  EOI,
+  APP,
+  JFIF,
+  COM,
+  DQT,
+} from './jpeg'
 import { getDhtLength, encodeDHT } from './huffmanTable.encode'
 import { encodeDQT, getDqtLength } from './quantizationTable.encode'
 import { encodeAPP, encodeCOM } from './app.encode'
@@ -19,22 +32,22 @@ const getSosLength = (sos: SOS) =>
 
 const segmentLength = (segment: Segment): number => {
   switch (segment.type) {
-    case 'SOI':
-    case 'EOI':
+    case SOI:
+    case EOI:
       return 2
-    case 'APP':
+    case APP:
       return segment.data.length + 4
-    case 'JFIF':
+    case JFIF:
       return (segment.thumbnail?.data.length ?? 0) + 14
-    case 'COM':
+    case COM:
       return segment.text.length + 4
-    case 'DQT':
+    case DQT:
       return getDqtLength(segment)
-    case 'SOF':
+    case SOF:
       return getSofLength(segment)
-    case 'DHT':
+    case DHT:
       return getDhtLength(segment)
-    case 'SOS':
+    case SOS:
       return getSosLength(segment)
   }
 }
@@ -78,27 +91,27 @@ const encodeSegment = (
   buffer: Uint8Array
 ) => {
   switch (segment.type) {
-    case 'SOI':
+    case SOI:
       buffer[offset++] = 0xff
       buffer[offset++] = Marker.SOI
       break
-    case 'APP': {
+    case APP: {
       offset = encodeAPP(segment, offset, buffer)
       break
     }
-    case 'COM': {
+    case COM: {
       offset = encodeCOM(segment, offset, buffer)
       break
     }
-    case 'DQT':
+    case DQT:
       return encodeDQT(segment, offset, buffer)
-    case 'SOF':
+    case SOF:
       return encodeSOF(segment, offset, buffer)
-    case 'DHT':
+    case DHT:
       return encodeDHT(segment, offset, buffer)
-    case 'SOS':
+    case SOS:
       return encodeSOS(segment, offset, buffer)
-    case 'EOI':
+    case EOI:
       buffer[offset++] = 0xff
       buffer[offset++] = Marker.EOI
       break

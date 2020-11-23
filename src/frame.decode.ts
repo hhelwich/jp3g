@@ -1,4 +1,14 @@
-import { DQT_TABLE, HuffmanTree, Jpeg, Segment, SOF, zigZag } from './jpeg'
+import {
+  DHT,
+  DQT,
+  DQT_TABLE,
+  EOI,
+  HuffmanTree,
+  Jpeg,
+  SOF,
+  SOS,
+  zigZag,
+} from './jpeg'
 import { InvalidJpegError } from './InvalidJpegError'
 import { dequantize } from './quantization.decode'
 import { idct } from './dctOptimized.decode'
@@ -48,17 +58,17 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
   let yCbCr: number[][] = [] // TODO remove
   segmentLoop: for (const segment of jpeg) {
     switch (segment.type) {
-      case 'DHT':
+      case DHT:
         for (const table of segment.tables) {
           huffmanTables[table.cls][table.id] = table.tree
         }
         break
-      case 'DQT':
+      case DQT:
         for (const table of segment.tables) {
           quantizationTables[table.id] = table
         }
         break
-      case 'SOF':
+      case SOF:
         if (
           segment.frameType < 0 ||
           segment.frameType > 1 ||
@@ -108,7 +118,7 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
           height: segment.height,
         }
         break
-      case 'SOS':
+      case SOS:
         const [huffmanTablesDC, huffmanTablesAC] = huffmanTables
         const { getCoeff } = decodeFns(segment.data)
         for (const component of segment.components) {
@@ -141,7 +151,7 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
           data.data[i * 4 + 3] = 255
         }
         break
-      case 'EOI':
+      case EOI:
         break segmentLoop
     }
   }

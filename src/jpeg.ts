@@ -21,7 +21,15 @@ export const zigZag = new Uint8Array([
   53, 60, 61, 54, 47, 55, 62, 63,
 ])
 
-export const jfifId = 'JFIF'
+export const SOI = 'SOI'
+export const EOI = 'EOI'
+export const COM = 'COM'
+export const APP = 'APP'
+export const JFIF = 'JFIF'
+export const DHT = 'DHT'
+export const DQT = 'DQT'
+export const SOF = 'SOF'
+export const SOS = 'SOS'
 
 export const enum JFIFUnits {
   PixelAspectRatio = 0,
@@ -30,11 +38,11 @@ export const enum JFIFUnits {
 }
 
 export type SOI = {
-  type: 'SOI'
+  type: typeof SOI
 }
 
 export type JFIF = {
-  type: 'JFIF'
+  type: typeof JFIF
   version: [number, number]
   units: number
   density: { x: number; y: number }
@@ -42,13 +50,13 @@ export type JFIF = {
 }
 
 export type APP = {
-  type: 'APP'
+  type: typeof APP
   appType: number
   data: Uint8Array
 }
 
 export type COM = {
-  type: 'COM'
+  type: typeof COM
   text: string
 }
 
@@ -59,7 +67,7 @@ export type DQT_TABLE = {
 }
 
 export type DQT = {
-  type: 'DQT'
+  type: typeof DQT
   tables: DQT_TABLE[]
 }
 
@@ -83,12 +91,12 @@ export type DHT_TABLE = {
 }
 
 export type DHT = {
-  type: 'DHT'
+  type: typeof DHT
   tables: DHT_TABLE[]
 }
 
 export type SOF = {
-  type: 'SOF'
+  type: typeof SOF
   frameType: number
   /** Sample precision in bits (8, 12). */
   precision: number
@@ -117,7 +125,7 @@ export type SOF = {
 }
 
 export type SOS = {
-  type: 'SOS'
+  type: typeof SOS
   data: Uint8Array
   components: { id: number; dcId: number; acId: number }[]
   specStart: number
@@ -127,7 +135,7 @@ export type SOS = {
 }
 
 export type EOI = {
-  type: 'EOI'
+  type: typeof EOI
 }
 
 export type Segment = SOI | JFIF | APP | COM | DQT | DHT | SOF | SOS | EOI

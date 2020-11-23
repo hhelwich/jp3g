@@ -1,5 +1,5 @@
 import { InvalidJpegError } from './InvalidJpegError'
-import { SOF, Jpeg, Marker } from './jpeg'
+import { SOF, Jpeg, Marker, SOS, EOI, SOI } from './jpeg'
 import { decodeDHT } from './huffmanTable.decode'
 import { decodeDQT } from './quantizationTable.decode'
 import { getHiLow, getUint16 } from './common.decode'
@@ -40,7 +40,7 @@ export const decodeSOF = (frameType: number, data: Uint8Array): SOF => {
     components.push({ id, h, v, qId })
   }
   return {
-    type: 'SOF',
+    type: SOF,
     frameType,
     precision,
     width,
@@ -77,7 +77,7 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
 
   // The last marker in the file must be an EOI, and it must immediately follow
   // the compressed data of the last scan in the image.
-  const result: Jpeg = [{ type: 'SOI' }]
+  const result: Jpeg = [{ type: SOI }]
   let segEnd = 2 // End of the current segment
   const { length } = jpeg
 
@@ -117,7 +117,7 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
             }
             segEnd = offset
             result.push({
-              type: 'SOS',
+              type: SOS,
               components,
               specStart,
               specEnd,
@@ -130,7 +130,7 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
         }
         break
       } else if (byte === Marker.EOI) {
-        result.push({ type: 'EOI' })
+        result.push({ type: EOI })
         // TODO Add segment if data after EOI
         return result
       } else {

@@ -65,7 +65,7 @@ export const decodeDHT = (data: Uint8Array): DHT => {
     })
   } while (offset !== length)
   return {
-    type: 'DHT',
+    type: DHT,
     tables,
   }
 }

@@ -18,7 +18,7 @@ const getJpegBuffer = (jpeg: Jpeg): ArrayBufferLike[] =>
   // This is sufficient because all data segment (APP, SOS) views reference
   // the same buffer. There is always a SOS segment.
   getBuffer(
-    jpeg.find(segment => segment.type === 'APP' || segment.type === 'SOS') as
+    jpeg.find(segment => segment.type === APP || segment.type === SOS) as
       | APP
       | SOS
   )

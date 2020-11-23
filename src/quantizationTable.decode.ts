@@ -40,7 +40,7 @@ export const decodeDQT = (data: Uint8Array): DQT => {
     offset += bytes * 64
   } while (offset !== length)
   return {
-    type: 'DQT',
+    type: DQT,
     tables,
   }
 }

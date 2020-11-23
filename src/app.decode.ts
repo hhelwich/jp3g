@@ -1,4 +1,4 @@
-import { APP, COM, JFIF, jfifId } from './jpeg'
+import { APP, COM, JFIF } from './jpeg'
 import { getUint16 } from './common.decode'
 
 const dataToString = (data: Uint8Array): string =>
@@ -24,13 +24,13 @@ export const isCustomApp0 = (identifier: string) => {
 /**
  * Returns true if the given APP segment is a JFIF segment.
  */
-export const isJFIF = isCustomApp0(jfifId)
+export const isJFIF = isCustomApp0(JFIF)
 
 /**
  * Decode a comment segment.
  */
 export const decodeCOM = (data: Uint8Array): COM => ({
-  type: 'COM',
+  type: COM,
   text: dataToString(data),
 })
 
@@ -39,7 +39,7 @@ export const decodeCOM = (data: Uint8Array): COM => ({
  */
 export const decodeAPP = (appType: number, data: Uint8Array): APP | JFIF => {
   const app: APP = {
-    type: 'APP',
+    type: APP,
     appType,
     data,
   }
@@ -51,7 +51,7 @@ export const decodeAPP = (appType: number, data: Uint8Array): APP | JFIF => {
  */
 const decodeJFIF = (data: Uint8Array): JFIF => {
   const jfif: JFIF = {
-    type: jfifId,
+    type: JFIF,
     version: [data[5], data[6]],
     units: data[7],
     density: { x: getUint16(data, 8), y: getUint16(data, 10) },

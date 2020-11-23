@@ -1,4 +1,4 @@
-import { APP, COM, JFIF, jfifId, Marker } from './jpeg'
+import { APP, COM, JFIF, Marker } from './jpeg'
 import { setUint16 } from './jpeg.encode'
 
 /**
@@ -34,7 +34,7 @@ export const encodeAPP = (segment: APP, offset: number, buffer: Uint8Array) => {
   return offset + length
 }
 
-const jfifStr = `${jfifId}\0`
+const jfifStr = `${JFIF}\0`
 
 /**
  * Encode a JFIF APP0 segment.
