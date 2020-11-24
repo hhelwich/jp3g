@@ -1,5 +1,5 @@
 import { distanceRgb } from '../distanceRgb'
-import distanceRgbValues from '../distanceRgbValues'
+import distanceRgbValues from './distanceRgbValues'
 
 describe('distanceRgb', () => {
   it('returns expected distances', () => {
