@@ -43,6 +43,11 @@ const createTestImage = (width: number, height: number) => {
   return ctx.getImageData(0, 0, width, height)
 }
 
+const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
+  sharp(Buffer.from(data), { raw: { width, height, channels: 4 } })
+    .removeAlpha()
+    .toFile(fileName)
+
 ;(async () => {
   try {
     // Generate some images which are used as source to create JPEG test images
@@ -53,12 +58,10 @@ const createTestImage = (width: number, height: number) => {
       [32, 32],
       [7, 11],
     ]) {
-      const testImage = createTestImage(width, height)
-      await sharp(Buffer.from(testImage.data), {
-        raw: { width: testImage.width, height: testImage.height, channels: 4 },
-      })
-        .removeAlpha()
-        .toFile(`src/__tests__/images/${width}x${height}-original.png`)
+      await writeImageData(
+        createTestImage(width, height),
+        `src/__tests__/images/${width}x${height}-original.png`
+      )
     }
     // Iterate all JPEG images which are used to test the decoder and create a
     // PNG image to hold the expected result.
@@ -105,11 +108,10 @@ const createTestImage = (width: number, height: number) => {
         throw Error('Unexpected pixel color')
       }
       // Write expected decoder result which is used in decoder tests
-      await sharp(Buffer.from(image.data), {
-        raw: { width: image.width, height: image.height, channels: 4 },
-      })
-        .removeAlpha()
-        .toFile(`src/__tests__/images/${jpegFileName}-expected.png`)
+      await writeImageData(
+        image,
+        `src/__tests__/images/${jpegFileName}-expected.png`
+      )
     }
     console.log('OK')
   } catch (e) {
