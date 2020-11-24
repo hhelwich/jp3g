@@ -1,4 +1,4 @@
-import { readImageFile, readImageDataFromPng } from './testUtil'
+import { readImageFile, readImageDataFromPng } from './util/testUtil'
 import { decodeJpeg } from '../jpeg.decode'
 import { decodeFrame } from '../frame.decode'
 import jpeg8x8Expected from './images/8x8'

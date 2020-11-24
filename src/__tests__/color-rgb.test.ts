@@ -1,17 +1,16 @@
 import { rgb2YCbCr } from '../colorRgb.encode'
 import { yCbCr2Rgb } from '../colorRgb.decode'
-import { range } from '../util'
+import { scaledRange } from './util/testUtil'
 
 /**
- * Use n = 256 to cover all possible values of a byte. Use smaller values if the
- * tests take too long.
+ * Use scope = 256 to cover all possible values of a byte. Use smaller
+ * values >= 2 if the tests take too long.
  */
-const range255 = (n: number) =>
-  range(n).map(i => Math.round((255 * i) / (n - 1)))
+const scope = 20
 
 describe('RGB <-> YCbCr', () => {
   it('YCbCr is in expected range', () => {
-    const range = range255(20)
+    const range = scaledRange(255)(scope)
     for (const r of range) {
       for (const g of range) {
         for (const b of range) {
@@ -31,7 +30,7 @@ describe('RGB <-> YCbCr', () => {
     }
   })
   it('round(yCbCr2Rgb ∘ rgb2YCbCr) is identity', () => {
-    const range = range255(20)
+    const range = scaledRange(255)(scope)
     for (const r of range) {
       for (const g of range) {
         for (const b of range) {

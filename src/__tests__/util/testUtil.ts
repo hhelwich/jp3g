@@ -1,5 +1,6 @@
 import fs from 'fs'
 import sharp from 'sharp'
+import { range } from '../../util'
 
 export const readImageFile = (fileName: string) =>
   new Uint8Array(fs.readFileSync(`src/__tests__/images/${fileName}`))
@@ -27,3 +28,9 @@ export const readImageDataFromPng = async (
     data: new Uint8ClampedArray(data),
   }
 }
+
+/**
+ * Return a list of integers, evenly scaled from 0 to max.
+ */
+export const scaledRange = (max: number) => (count: number) =>
+  range(count).map(i => Math.round((max * i) / (count - 1)))

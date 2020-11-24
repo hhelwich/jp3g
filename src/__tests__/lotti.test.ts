@@ -3,7 +3,7 @@ import { idct } from '../dctReference.decode'
 import coeff from './images/lotti-8-4:4:4-90.coeff'
 import { yCbCr2Rgb } from '../colorRgb.decode'
 import { decenter } from '../dctCenter.decode'
-import { readImageFile } from './testUtil'
+import { readImageFile } from './util/testUtil'
 import { decodeJpeg } from '../jpeg.decode'
 import { decodeFrame } from '../frame.decode'
 

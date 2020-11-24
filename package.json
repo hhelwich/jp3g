@@ -15,7 +15,7 @@
     "test-watch": "jest --watch",
     "format": "prettier --write .",
     "build": "del-cli dist && rollup -c && tsc -d --emitDeclarationOnly --resolveJsonModule --declarationDir dist --lib ES2019.Array,WebWorker src/index.ts && mv dist/src/ dist/types",
-    "generate-test-images": "tsc src/__tests__/generateTestImages.ts && node src/__tests__/generateTestImages.js && rm src/__tests__/generateTestImages.js"
+    "generate-test-images": "[ ! -d tmp ] && tsc --esModuleInterop --outDir tmp src/__tests__/util/generateTestImagesScript.ts && node tmp/__tests__/util/generateTestImagesScript.js && rm -r tmp"
   },
   "devDependencies": {
     "@rollup/plugin-json": "^4.1.0",
