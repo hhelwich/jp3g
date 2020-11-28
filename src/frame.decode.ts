@@ -119,18 +119,24 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
         }
         break
       case SOS:
+        const { components } = segment
         const [huffmanTablesDC, huffmanTablesAC] = huffmanTables
         const { getCoeff } = decodeFns(segment.data)
-        for (const component of segment.components) {
+        const componentCount = components.length
+        const lastDcs = zeros(componentCount)
+        for (let k = 0; k < componentCount; k += 1) {
+          const component = components[k]
           const { v, h, qId } = frameComponents[component.id]
           const quantizationTable = quantizationTables[qId]
           for (let i = 0; i < v; i += 1) {
             for (let j = 0; j < h; j += 1) {
               //
               const qcoeff = getCoeff(
+                lastDcs[k],
                 huffmanTablesDC[component.dcId],
                 huffmanTablesAC[component.acId]
               )
+              lastDcs[k] = qcoeff[0]
               //
               const coeff: number[] = []
               dequantize(quantizationTable.values, qcoeff, coeff)
@@ -157,6 +163,8 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
   }
   return data
 }
+
+const zeros = (size: number): number[] => Array(size).fill(0)
 
 // [Bitmap] <-> Sampling <-> DCT <-> Quantization <-> Huffman Coding <-> [JPEG]
 
@@ -213,14 +221,13 @@ export const decodeFns = (data: Uint8Array) => {
     const additionalBits = nextBits(magnitude)
     return extend(additionalBits, magnitude)
   }
-  let lastDc = 0
-  const nextDc = (huffmanTreeDC: HuffmanTree) => {
-    return (lastDc += nextDcDiff(huffmanTreeDC))
-  }
-  const getCoeff = (huffmanTreeDC: HuffmanTree, huffmanTreeAC: HuffmanTree) => {
-    lastDc = 0 // TODO remove
+  const getCoeff = (
+    lastDc: number,
+    huffmanTreeDC: HuffmanTree,
+    huffmanTreeAC: HuffmanTree
+  ) => {
     const coefficients: number[] = []
-    coefficients[0] = nextDc(huffmanTreeDC)
+    coefficients[0] = lastDc + nextDcDiff(huffmanTreeDC)
     for (let i = 1; i < 64; i += 1) {
       coefficients[i] = 0
     }
@@ -247,13 +254,7 @@ export const decodeFns = (data: Uint8Array) => {
     }
     return coefficients
   }
-  return {
-    nextBit,
-    nextHuffmanByte,
-    nextDcDiff,
-    nextDc,
-    getCoeff,
-  }
+  return { nextBit, nextHuffmanByte, nextDcDiff, getCoeff }
 }
 
 /**

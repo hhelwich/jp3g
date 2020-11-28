@@ -70,9 +70,9 @@ describe('decode scan', () => {
       const ht10 = (<DHT>jpegLotti8Struct[7]).tables[0].tree
       const ht11 = (<DHT>jpegLotti8Struct[8]).tables[0].tree
       const { getCoeff } = decodeFns(scan)
-      expect(getCoeff(ht00, ht01)).toEqual(jpegLotti8Coeff[0])
-      expect(getCoeff(ht10, ht11)).toEqual(jpegLotti8Coeff[1])
-      expect(getCoeff(ht10, ht11)).toEqual(jpegLotti8Coeff[2])
+      expect(getCoeff(0, ht00, ht01)).toEqual(jpegLotti8Coeff[0])
+      expect(getCoeff(0, ht10, ht11)).toEqual(jpegLotti8Coeff[1])
+      expect(getCoeff(0, ht10, ht11)).toEqual(jpegLotti8Coeff[2])
     })
   })
 })
