@@ -168,9 +168,16 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
           } else if (foo === 1 && bar === 2) {
             const x = i % 8
             const y = Math.floor(i / 8)
-            const j = (x + y * 8) % 64
             const k = Math.floor(i / 64)
+            const j = (x + y * 8) % 64
             const l = x + Math.floor(y / 2) * 8
+            p = [yCbCr[1][k][j], yCbCr[2][0][l], yCbCr[3][0][l]]
+          } else if (foo === 2 && bar === 2) {
+            const x = i % 16
+            const y = Math.floor(i / 16)
+            const k = Math.floor(x / 8) + Math.floor(y / 8) * 2
+            const j = (x % 8) + (y % 8) * 8
+            const l = Math.floor(x / 2) + Math.floor(y / 2) * 8
             p = [yCbCr[1][k][j], yCbCr[2][0][l], yCbCr[3][0][l]]
           } else {
             throw Error('ooops')

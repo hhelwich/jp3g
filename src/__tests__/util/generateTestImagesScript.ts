@@ -70,6 +70,7 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
       { name: '8x8', diff: { max: 3.63, mean: 0.22 } },
       { name: '8x16', diff: { max: 14.82, mean: 2.68 } },
       { name: '16x8', diff: { max: 18.07, mean: 2.52 } },
+      { name: '16x16', diff: { max: 22.28, mean: 3.74 } },
     ]) {
       // Decode with libjpeg for reference
       const fileName = `src/__tests__/images/${jpegFile.name}.jpg`
