@@ -151,18 +151,30 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
           }
         }
         const foo = frameComponents[1].h
-        const n = 64 * foo
+        const bar = frameComponents[1].v
+        const n = 64 * foo * bar
         for (let i = 0; i < n; i += 1) {
-          const x = i % 16
-          const y = Math.floor(i / 16)
-          const p =
-            foo === 1
-              ? [yCbCr[1][0][i], yCbCr[2][0][i], yCbCr[3][0][i]]
-              : [
-                  yCbCr[1][Math.floor(x / 8)][(x % 8) + y * 8],
-                  yCbCr[2][0][Math.floor(i / 2)],
-                  yCbCr[3][0][Math.floor(i / 2)],
-                ]
+          let p: number[]
+          if (foo === 1 && bar === 1) {
+            p = [yCbCr[1][0][i], yCbCr[2][0][i], yCbCr[3][0][i]]
+          } else if (foo === 2 && bar === 1) {
+            const x = i % 16
+            const y = Math.floor(i / 16)
+            p = [
+              yCbCr[1][Math.floor(x / 8)][(x % 8) + y * 8],
+              yCbCr[2][0][Math.floor(i / 2)],
+              yCbCr[3][0][Math.floor(i / 2)],
+            ]
+          } else if (foo === 1 && bar === 2) {
+            const x = i % 8
+            const y = Math.floor(i / 8)
+            const j = (x + y * 8) % 64
+            const k = Math.floor(i / 64)
+            const l = x + Math.floor(y / 2) * 8
+            p = [yCbCr[1][k][j], yCbCr[2][0][l], yCbCr[3][0][l]]
+          } else {
+            throw Error('ooops')
+          }
           const [r, g, b] = yCbCr2Rgb(p)
           data.data[i * 4 + 0] = r
           data.data[i * 4 + 1] = g

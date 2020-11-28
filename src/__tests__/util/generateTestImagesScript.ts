@@ -53,6 +53,7 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     // Generate some images which are used as source to create JPEG test images
     for (const [width, height] of [
       [8, 8],
+      [8, 16],
       [16, 8],
       [16, 16],
       [32, 32],
@@ -67,6 +68,7 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     // PNG image to hold the expected result.
     for (const jpegFile of [
       { name: '8x8', diff: { max: 3.63, mean: 0.22 } },
+      { name: '8x16', diff: { max: 14.82, mean: 2.68 } },
       { name: '16x8', diff: { max: 18.07, mean: 2.52 } },
     ]) {
       // Decode with libjpeg for reference
@@ -111,7 +113,9 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
         maxDistance > jpegFile.diff.max ||
         meanDistance > jpegFile.diff.mean
       ) {
-        throw Error('Unexpected pixel color')
+        throw Error(
+          `Unexpected pixel color diff (max=${maxDistance}, mean=${meanDistance})`
+        )
       }
       // Write expected decoder result which is used in decoder tests
       await writeImageData(
