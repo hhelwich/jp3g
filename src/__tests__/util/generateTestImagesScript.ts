@@ -65,9 +65,12 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     }
     // Iterate all JPEG images which are used to test the decoder and create a
     // PNG image to hold the expected result.
-    for (const jpegFileName of ['8x8']) {
+    for (const jpegFile of [
+      { name: '8x8', diff: { max: 3.63, mean: 0.22 } },
+      { name: '16x8', diff: { max: 18.07, mean: 2.52 } },
+    ]) {
       // Decode with libjpeg for reference
-      const fileName = `src/__tests__/images/${jpegFileName}.jpg`
+      const fileName = `src/__tests__/images/${jpegFile.name}.jpg`
       const referenceImage = await sharp(fileName)
         .raw()
         .toBuffer({ resolveWithObject: true })
@@ -104,13 +107,16 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
           meanDistance += distance / count
         }
       }
-      if (maxDistance > 4 || meanDistance > 0.3) {
+      if (
+        maxDistance > jpegFile.diff.max ||
+        meanDistance > jpegFile.diff.mean
+      ) {
         throw Error('Unexpected pixel color')
       }
       // Write expected decoder result which is used in decoder tests
       await writeImageData(
         image,
-        `src/__tests__/images/${jpegFileName}-expected.png`
+        `src/__tests__/images/${jpegFile.name}-expected.png`
       )
     }
     console.log('OK')

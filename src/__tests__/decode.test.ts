@@ -3,7 +3,7 @@ import { encodeJpeg } from '../jpeg.encode'
 import { InvalidJpegError } from '../InvalidJpegError'
 import jpegSmallExpected from '../../images/small'
 import jpegSmallGuetzliExpected from '../../images/small-guetzli'
-import { readImageFile } from './testUtil'
+import { readImageFile } from './util/testUtil'
 import jpegLotti8 from './images/lotti-8-4:4:4-90'
 
 /*

@@ -55,7 +55,6 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
     width: 0,
     height: 0,
   }
-  let yCbCr: number[][] = [] // TODO remove
   segmentLoop: for (const segment of jpeg) {
     switch (segment.type) {
       case DHT:
@@ -121,17 +120,19 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
       case SOS:
         const { components } = segment
         const [huffmanTablesDC, huffmanTablesAC] = huffmanTables
-        const { getCoeff } = decodeFns(segment.data)
+        const { decodeCoeff } = decodeFns(segment.data)
         const componentCount = components.length
         const lastDcs = zeros(componentCount)
+        const yCbCr: number[][][] = []
         for (let k = 0; k < componentCount; k += 1) {
           const component = components[k]
+          yCbCr[component.id] = []
           const { v, h, qId } = frameComponents[component.id]
           const quantizationTable = quantizationTables[qId]
           for (let i = 0; i < v; i += 1) {
             for (let j = 0; j < h; j += 1) {
               //
-              const qcoeff = getCoeff(
+              const qcoeff = decodeCoeff(
                 lastDcs[k],
                 huffmanTablesDC[component.dcId],
                 huffmanTablesAC[component.acId]
@@ -145,12 +146,24 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
               // Decenter
               const dvalues = decenter(values)
               //
-              yCbCr[component.id - 1] = dvalues
+              yCbCr[component.id].push(dvalues)
             }
           }
         }
-        for (let i = 0; i < 64; i += 1) {
-          const [r, g, b] = yCbCr2Rgb([yCbCr[0][i], yCbCr[1][i], yCbCr[2][i]])
+        const foo = frameComponents[1].h
+        const n = 64 * foo
+        for (let i = 0; i < n; i += 1) {
+          const x = i % 16
+          const y = Math.floor(i / 16)
+          const p =
+            foo === 1
+              ? [yCbCr[1][0][i], yCbCr[2][0][i], yCbCr[3][0][i]]
+              : [
+                  yCbCr[1][Math.floor(x / 8)][(x % 8) + y * 8],
+                  yCbCr[2][0][Math.floor(i / 2)],
+                  yCbCr[3][0][Math.floor(i / 2)],
+                ]
+          const [r, g, b] = yCbCr2Rgb(p)
           data.data[i * 4 + 0] = r
           data.data[i * 4 + 1] = g
           data.data[i * 4 + 2] = b
@@ -221,7 +234,7 @@ export const decodeFns = (data: Uint8Array) => {
     const additionalBits = nextBits(magnitude)
     return extend(additionalBits, magnitude)
   }
-  const getCoeff = (
+  const decodeCoeff = (
     lastDc: number,
     huffmanTreeDC: HuffmanTree,
     huffmanTreeAC: HuffmanTree
@@ -254,7 +267,7 @@ export const decodeFns = (data: Uint8Array) => {
     }
     return coefficients
   }
-  return { nextBit, nextHuffmanByte, nextDcDiff, getCoeff }
+  return { nextBit, nextHuffmanByte, nextDcDiff, decodeCoeff }
 }
 
 /**
