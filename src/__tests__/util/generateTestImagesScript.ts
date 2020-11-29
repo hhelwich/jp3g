@@ -53,23 +53,27 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     // Generate some images which are used as source to create JPEG test images
     for (const [width, height] of [
       [8, 8],
+      [7, 11],
+      [11, 7],
       [8, 16],
       [16, 8],
       [16, 16],
       [32, 32],
-      [7, 11],
     ]) {
       await writeImageData(
         createTestImage(width, height),
-        `src/__tests__/images/${width}x${height}-original.png`
+        `src/__tests__/images/original/${width}x${height}.png`
       )
     }
     // Iterate all JPEG images which are used to test the decoder and create a
     // PNG image to hold the expected result.
     for (const jpegFile of [
+      // No subsampling here. Error because of libjpeg perf. optimizations?
       { name: '8x8', diff: { max: 3.63, mean: 0.22 } },
+      // Halved chroma pixels. Libjpeg seems to do some interpolation?
       { name: '8x16', diff: { max: 14.82, mean: 2.68 } },
       { name: '16x8', diff: { max: 18.07, mean: 2.52 } },
+      // Quatered chroma pixels
       { name: '16x16', diff: { max: 22.28, mean: 3.74 } },
     ]) {
       // Decode with libjpeg for reference
