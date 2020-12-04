@@ -52,12 +52,21 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
   try {
     // Generate some images which are used as source to create JPEG test images
     for (const [width, height] of [
-      [8, 8],
       [7, 11],
-      [11, 7],
+      [8, 8],
       [8, 16],
+      [8, 24],
+      [11, 7],
       [16, 8],
       [16, 16],
+      [16, 24],
+      [16, 32],
+      [24, 8],
+      [24, 16],
+      [24, 24],
+      [24, 32],
+      [32, 8],
+      [32, 16],
       [32, 32],
     ]) {
       await writeImageData(
@@ -133,3 +142,107 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     console.log(e)
   }
 })()
+
+const possibleSamplingFrequencies = [1, 2, 3, 4]
+
+const samplingFerquencies = new Map<number, Map<string, number[][]>>()
+for (const yh of possibleSamplingFrequencies) {
+  for (const yv of possibleSamplingFrequencies) {
+    for (const cbh of possibleSamplingFrequencies) {
+      for (const cbv of possibleSamplingFrequencies) {
+        for (const crh of possibleSamplingFrequencies) {
+          for (const crv of possibleSamplingFrequencies) {
+            const dataUnitCount = yh * yv + cbh * cbv + crh * crv
+            if (dataUnitCount > 10) {
+              continue
+            }
+            let sfs = samplingFerquencies.get(dataUnitCount)
+            if (!sfs) {
+              sfs = new Map()
+              samplingFerquencies.set(dataUnitCount, sfs)
+            }
+            const value = [yh, yv, cbh, cbv, crh, crv]
+            const key = value.slice().sort().join(',')
+            let values = sfs.get(key)
+            if (values == null) {
+              values = []
+              sfs.set(key, values)
+            }
+            values.push(value)
+          }
+        }
+      }
+    }
+  }
+}
+for (const count of Array.from(samplingFerquencies.keys()).sort(
+  (a, b) => a - b
+)) {
+  const exampleSFreq: number[][] = []
+  samplingFerquencies.get(count).forEach((a, b) => {
+    exampleSFreq.push(a[Math.floor(Math.random() * a.length)])
+  })
+  console.log(count, exampleSFreq)
+}
+
+const exampleSubSamplingFactors3Comps = [
+  // 4 data units
+  [1, 2, 1, 1, 1, 1], // 4:2:2 vertical
+  [2, 1, 1, 1, 1, 1], // 4:2:2 horizontal
+  // 5 data units
+  [1, 1, 1, 1, 3, 1],
+  [1, 2, 1, 2, 1, 1],
+  // 6 data units
+  [2, 2, 1, 1, 1, 1], // 4:2:0 (chroma quartered)
+  [4, 1, 1, 1, 1, 1],
+  [1, 1, 1, 2, 3, 1],
+  [1, 2, 1, 2, 1, 2],
+  // 7 data units
+  [1, 1, 4, 1, 2, 1],
+  [2, 1, 2, 2, 1, 1],
+  [1, 3, 1, 3, 1, 1],
+  // [3, 1, 2, 1, 1, 2], // fractional sampling
+  // 8 data units
+  [1, 1, 3, 2, 1, 1],
+  [3, 1, 1, 1, 1, 4],
+  // [3, 1, 2, 2, 1, 1], // fractional sampling
+  [1, 2, 1, 2, 1, 4],
+  [2, 1, 2, 2, 1, 2],
+  [3, 1, 1, 2, 3, 1],
+  // 9 data units
+  [1, 2, 1, 1, 3, 2],
+  [1, 1, 1, 4, 4, 1],
+  [2, 2, 1, 1, 4, 1],
+  [2, 2, 2, 2, 1, 1],
+  // [3, 1, 4, 1, 1, 2], // fractional sampling
+  // [1, 2, 3, 1, 2, 2], // fractional sampling
+  [1, 3, 1, 3, 3, 1],
+  // 10 data units (allowed maximum)
+  [2, 4, 1, 1, 1, 1],
+  [1, 1, 2, 3, 1, 3],
+  [1, 2, 1, 2, 3, 2],
+  [2, 1, 1, 4, 1, 4],
+  [2, 2, 2, 1, 4, 1],
+  [2, 1, 2, 2, 2, 2],
+  // [3, 1, 4, 1, 1, 3], // fractional sampling
+  // [1, 3, 3, 1, 2, 2], // fractional sampling
+]
+
+const foo = exampleSubSamplingFactors3Comps.map(
+  ([yh, yv, cbh, cbv, crh, crv]) => {
+    const maxH = Math.max(yh, cbh, crh)
+    const minH = Math.min(yh, cbh, crh)
+    const maxV = Math.max(yv, cbv, crv)
+    const minV = Math.min(yv, cbv, crv)
+    // Size of the MCU in pixels
+    const mcuWidth = (8 * maxH) / minH
+    const mcuHeight = (8 * maxV) / minV
+    const fileName = `subsampling-${mcuWidth}x${mcuHeight}-${yh}${yv}${cbh}${cbv}${crh}${crv}`
+    return [
+      `convert -define jpeg:dct-method=float -sampling-factor ${yh}x${yv},${cbh}x${cbv},${crh}x${crv} -quality 85 original/${mcuWidth}x${mcuHeight}.png ${fileName}.jpg`,
+      `| [${fileName}.jpg](${fileName}.jpg) | [${fileName}.ts](${fileName}.ts) | [${fileName}-expected.png](${fileName}-expected.png) | RGB image with subsampling ${yh}x${yv},${cbh}x${cbv},${crh}x${crv} and single MCU (Quality 85, Optimized, Floating point baseline DCT). |`,
+    ]
+  }
+)
+console.log(foo.map(([cmd]) => cmd).join('\n'))
+console.log(foo.map(([, md]) => md).join('\n'))
