@@ -9,11 +9,12 @@ import {
   SOS,
   zigZag,
 } from './jpeg'
-import { InvalidJpegError } from './InvalidJpegError'
 import { dequantize } from './quantization.decode'
 import { idct } from './dctOptimized.decode'
 import { decenter } from './dctCenter.decode'
-import { yCbCr2Rgb } from './colorRgb.decode'
+import { zeros } from './util'
+
+const { min, max, ceil } = Math
 
 export const prepareScanDecode = (sof: SOF) => {
   const maxH = Math.max(...sof.components.map(component => component.h))
@@ -46,15 +47,21 @@ export const prepareScanDecode = (sof: SOF) => {
   }
 }
 
+const createImageData = (width: number, height: number): ImageData => ({
+  data: new Uint8ClampedArray(width * height * 4),
+  width,
+  height,
+})
+
 export const decodeFrame = (jpeg: Jpeg): ImageData => {
   const huffmanTables: [HuffmanTree[], HuffmanTree[]] = [[], []]
   const quantizationTables: DQT_TABLE[] = []
-  let frameComponents: SOF['components'] = []
-  let data: ImageData = {
-    data: new Uint8ClampedArray(),
-    width: 0,
-    height: 0,
-  }
+  let frame:
+    | {
+        components: SOF['components']
+        imageData: ImageData
+      }
+    | undefined
   segmentLoop: for (const segment of jpeg) {
     switch (segment.type) {
       case DHT:
@@ -67,136 +74,175 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
           quantizationTables[table.id] = table
         }
         break
-      case SOF:
+      case SOF: {
         if (
           segment.frameType < 0 ||
           segment.frameType > 1 ||
           segment.precision !== 8
         ) {
           // Only sequential DCT frames with 8-bit samples are supported
-          throw new Error('Not 8-bit sequential')
+          throw Error('Not 8-bit sequential')
         }
-        const interleaved = segment.components.length > 1
-        if (segment.components.length === 0) {
-          throw new InvalidJpegError('No components found')
-        }
-        if (!interleaved) {
-          // Support only interleaved scans at the moment
-          throw new Error('Not interleaved')
-        }
-        // Get maximum of all component horizontal/vertical sampling frequencies
-        const hMax = Math.max(
-          ...segment.components.map(component => component.h)
-        )
-        const vMax = Math.max(
-          ...segment.components.map(component => component.v)
-        )
-        frameComponents = []
+        const frameComponents: SOF['components'] = []
         for (const component of segment.components) {
           frameComponents[component.id] = component
         }
-        // Get the image area size a data unit spans for each component
-        const dataUnitSizes = segment.components.map(({ h, v }) => [
-          (8 * hMax) / h,
-          (8 * vMax) / v,
-        ])
-        // data unit: An 8 × 8 block of samples of one component
-        // horizontal sampling factor: The relative number of horizontal data units of a particular component with respect
-        //   to the number of horizontal data units in the other components.
-        // vertical sampling factor: The relative number of vertical data units of a particular component with respect to
-        //   the number of vertical data units in the other components in the frame.
-        // minimum coded unit; MCU: The smallest group of data units that is coded.
-        const mcuSizes = {
-          //the MCU contains one or more data units from each component
-          x: (segment.width + 8 * hMax - 1) / (8 * hMax),
-          y: (segment.height + 8 * hMax - 1) / (8 * hMax),
-        }
-        data = {
-          data: new Uint8ClampedArray(segment.width * segment.height * 4),
-          width: segment.width,
-          height: segment.height,
+        frame = {
+          components: frameComponents,
+          imageData: createImageData(segment.width, segment.height),
         }
         break
-      case SOS:
+      }
+      case SOS: {
+        if (!frame) {
+          throw Error('Missing frame')
+        }
+        const {
+          components: frameComponents,
+          imageData: { width, height, data },
+        } = frame
         const { components } = segment
+        const interleaved = components.length > 1
+        if (!interleaved) {
+          // Support only interleaved scans at the moment
+          throw Error('Not interleaved')
+        }
+        let minH = 5
+        let maxH = 0
+        let minV = 5
+        let maxV = 0
+        let mcuDataUnitCount = 0
+        for (const component of components) {
+          const { h, v } = frameComponents[component.id]
+          if (h < 1 || h > 4 || v < 1 || v > 4) {
+            throw Error('Invalid sampling factor')
+          }
+          if (h === 3 || v === 3) {
+            throw Error('Unsupported sampling factor')
+          }
+          minH = min(minH, h)
+          maxH = max(maxH, h)
+          minV = min(minV, v)
+          maxV = max(maxV, v)
+          mcuDataUnitCount += h * v
+        }
+        // Size of the MCU in pixels
+        const mcuWidth = (8 * maxH) / minH
+        const mcuHeight = (8 * maxV) / minV
+        // Number of MCU columns/rows
+        const mcuColumns = ceil(width / mcuWidth)
+        const mcuRows = ceil(height / mcuHeight)
+        //
         const [huffmanTablesDC, huffmanTablesAC] = huffmanTables
-        const { decodeCoeff } = decodeFns(segment.data)
+        const decodeCoeff = createDecodeCoeff(segment.data)
         const componentCount = components.length
         const lastDcs = zeros(componentCount)
-        const yCbCr: number[][][] = []
-        for (let k = 0; k < componentCount; k += 1) {
-          const component = components[k]
-          yCbCr[component.id] = []
-          const { v, h, qId } = frameComponents[component.id]
-          const quantizationTable = quantizationTables[qId]
-          for (let i = 0; i < v; i += 1) {
-            for (let j = 0; j < h; j += 1) {
-              //
-              const qcoeff = decodeCoeff(
-                lastDcs[k],
-                huffmanTablesDC[component.dcId],
-                huffmanTablesAC[component.acId]
-              )
-              lastDcs[k] = qcoeff[0]
-              //
-              const coeff: number[] = []
-              dequantize(quantizationTable.values, qcoeff, coeff)
-              //
-              const values = idct(coeff)
-              // Decenter
-              const dvalues = decenter(values)
-              //
-              yCbCr[component.id].push(dvalues)
+        // Create buffer to hold the data units for each MCU row
+        const yCbCr = new Float64Array(mcuColumns * mcuDataUnitCount * 64)
+        let yCbCrOffset = 0
+        for (let mcuColumn = 0; mcuColumn < mcuColumns; mcuColumn += 1) {
+          for (let k = 0; k < componentCount; k += 1) {
+            const component = components[k]
+            const { h, v, qId } = frameComponents[component.id]
+            const quantizationTable = quantizationTables[qId]
+            for (let i = 0; i < v; i += 1) {
+              for (let j = 0; j < h; j += 1) {
+                // Decode data unit
+                //
+                const qcoeff = decodeCoeff(
+                  lastDcs[k],
+                  huffmanTablesDC[component.dcId],
+                  huffmanTablesAC[component.acId]
+                )
+                lastDcs[k] = qcoeff[0]
+                //
+                const coeff: number[] = []
+                dequantize(quantizationTable.values, qcoeff, coeff)
+                //
+                const values = idct(coeff)
+                // Decenter
+                const dvalues = decenter(values)
+                //
+                yCbCr.set(dvalues, yCbCrOffset)
+                yCbCrOffset += 64
+              }
             }
           }
         }
-        const foo = frameComponents[1].h
-        const bar = frameComponents[1].v
-        const n = 64 * foo * bar
-        for (let i = 0; i < n; i += 1) {
-          let p: number[]
-          if (foo === 1 && bar === 1) {
-            p = [yCbCr[1][0][i], yCbCr[2][0][i], yCbCr[3][0][i]]
-          } else if (foo === 2 && bar === 1) {
-            const x = i % 16
-            const y = Math.floor(i / 16)
-            p = [
-              yCbCr[1][Math.floor(x / 8)][(x % 8) + y * 8],
-              yCbCr[2][0][Math.floor(i / 2)],
-              yCbCr[3][0][Math.floor(i / 2)],
-            ]
-          } else if (foo === 1 && bar === 2) {
-            const x = i % 8
-            const y = Math.floor(i / 8)
-            const k = Math.floor(i / 64)
-            const j = (x + y * 8) % 64
-            const l = x + Math.floor(y / 2) * 8
-            p = [yCbCr[1][k][j], yCbCr[2][0][l], yCbCr[3][0][l]]
-          } else if (foo === 2 && bar === 2) {
-            const x = i % 16
-            const y = Math.floor(i / 16)
-            const k = Math.floor(x / 8) + Math.floor(y / 8) * 2
-            const j = (x % 8) + (y % 8) * 8
-            const l = Math.floor(x / 2) + Math.floor(y / 2) * 8
-            p = [yCbCr[1][k][j], yCbCr[2][0][l], yCbCr[3][0][l]]
-          } else {
-            throw Error('ooops')
+        const mapIndices = new Uint32Array(3 * width * height)
+        let i = 0
+        const mcuComponentUnits = components.map(({ id }) => {
+          const { h, v } = frameComponents[id]
+          return { size: h * v, skipX: h / maxH, skipY: v / maxV }
+        })
+        let y = 0
+        for (let mcuColumn = 0; mcuColumn < mcuColumns; mcuColumn += 1) {
+          for (let k = 0; k < componentCount; k += 1) {
+            const component = components[k]
+            const { h, v } = frameComponents[component.id]
+            const hh = maxH / h
+            const vv = maxV / v
+            for (let i = 0; i < v; i += 1) {
+              for (let j = 0; j < h; j += 1) {
+                for (let zy = 0; zy < 8; zy += 1) {
+                  for (let zx = 0; zx < 8; zx += 1) {
+                    for (let g = 0; g < vv; g += 1) {
+                      for (let f = 0; f < hh; f += 1) {
+                        mapIndices[
+                          (i * 32 * h * v +
+                            j * 8 +
+                            zy * 8 * vv * maxH +
+                            zx * hh +
+                            g * 8 * hh +
+                            f) *
+                            3 +
+                            k
+                        ] = y
+                      }
+                    }
+                    y += 1
+                  }
+                }
+              }
+            }
           }
-          const [r, g, b] = yCbCr2Rgb(p)
-          data.data[i * 4 + 0] = r
-          data.data[i * 4 + 1] = g
-          data.data[i * 4 + 2] = b
-          data.data[i * 4 + 3] = 255
         }
+        yCbCr2Rgb(yCbCr, mapIndices, data)()
         break
+      }
       case EOI:
-        break segmentLoop
+        break segmentLoop // TODO remove label?
     }
   }
-  return data
+  if (!frame) {
+    throw Error('Missing frame')
+  }
+  return frame.imageData
 }
 
-const zeros = (size: number): number[] => Array(size).fill(0)
+// TODO: Extract to module
+const yCbCr2Rgb = (
+  source: Float64Array,
+  mapIndices: Uint32Array,
+  target: Uint8ClampedArray
+) => {
+  const length = mapIndices.length // width * height * 3
+  let offset = 0
+  let Y: number
+  let Cb: number
+  let Cr: number
+  return () => {
+    for (let i = 0; i < length; ) {
+      Y = source[mapIndices[i++]]
+      Cb = source[mapIndices[i++]]
+      Cr = source[mapIndices[i++]]
+      target[offset++] = Y + 1.402 * Cr - 179.456
+      target[offset++] = Y - 0.34414 * Cb - 0.71414 * Cr + 135.45984
+      target[offset++] = Y + 1.772 * Cb - 226.816
+      target[offset++] = 255
+    }
+  }
+}
 
 // [Bitmap] <-> Sampling <-> DCT <-> Quantization <-> Huffman Coding <-> [JPEG]
 
@@ -204,14 +250,14 @@ const zeros = (size: number): number[] => Array(size).fill(0)
 // 4:2:2 (2x1,1x1,1x1) => Data unit 8x16 (Y), 16x16 (Cb, Cr) pixels
 // 4:2:0 (2x2,1x1,1x1) => Data unit 8x8 (Y), 16x16 (Cb, Cr) pixels
 
-export const decodeFns = (data: Uint8Array) => {
+export const createNextBit = (data: Uint8Array) => {
   // The Position of the next byte in the data
   let offset = 0
   // The current data byte
   let currentByte: number
   // Position of the next bit in the current byte
   let byteOffset = -1
-  const nextBit = (): number => {
+  return () => {
     // If current byte is read => get next byte
     if (byteOffset < 0) {
       currentByte = data[offset++]
@@ -225,6 +271,11 @@ export const decodeFns = (data: Uint8Array) => {
     // Return current bit
     return (currentByte >> byteOffset--) & 1
   }
+}
+
+export const createDecodeCoeff = (data: Uint8Array) => {
+  const nextBit = createNextBit(data)
+
   /**
    * Receive function from JPEG spec.
    */
@@ -253,7 +304,7 @@ export const decodeFns = (data: Uint8Array) => {
     const additionalBits = nextBits(magnitude)
     return extend(additionalBits, magnitude)
   }
-  const decodeCoeff = (
+  return (
     lastDc: number,
     huffmanTreeDC: HuffmanTree,
     huffmanTreeAC: HuffmanTree
@@ -286,7 +337,6 @@ export const decodeFns = (data: Uint8Array) => {
     }
     return coefficients
   }
-  return { nextBit, nextHuffmanByte, nextDcDiff, decodeCoeff }
 }
 
 /**

@@ -113,11 +113,16 @@ export type SOF = {
      */
     id: number
     /**
-     * Horizontal sampling (0,1,2,3).
-     * h * v = Number of data units that are used in one MCU for interleaved
+     * Horizontal sampling factor. Can encode/decode integers from 0 to 15 but
+     * only values 1-4 are allowed.
+     * h * v = Number of data units that are used for that component in one MCU
+     * for an interleaved scan.
      */
     h: number
-    /** Vertical sampling (0,1,2,3) */
+    /**
+     * Vertical sampling factor. Can encode/decode integers from 0 to 15 but
+     * only values 1-4 are allowed.
+     */
     v: number
     /** The id of the quantization table for this component. */
     qId: number

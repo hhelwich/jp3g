@@ -7,3 +7,5 @@ export const range = (length: number) => {
   }
   return result
 }
+
+export const zeros = (size: number): number[] => Array(size).fill(0)
