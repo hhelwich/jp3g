@@ -43,8 +43,6 @@ const createTestImage = (width: number, height: number) => {
   return ctx.getImageData(0, 0, width, height)
 }
 
-const ceil2 = (x: number) => Math.ceil(x * 100) / 100
-
 const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
   sharp(Buffer.from(data), { raw: { width, height, channels: 4 } })
     .removeAlpha()
@@ -54,12 +52,10 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
   try {
     // Generate some images which are used as source to create JPEG test images
     for (const [width, height] of [
-      /*
       [7, 11],
       [8, 8],
       [8, 16],
       [8, 24],
-      [8, 32],
       [11, 7],
       [16, 8],
       [16, 16],
@@ -71,10 +67,8 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
       [24, 32],
       [32, 8],
       [32, 16],
-      [32, 24],
       [32, 32],
-      */
-    ] as [number, number][]) {
+    ]) {
       await writeImageData(
         createTestImage(width, height),
         `src/__tests__/images/original/${width}x${height}.png`
@@ -90,36 +84,6 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
       { name: '16x8', diff: { max: 18.07, mean: 2.52 } },
       // Quatered chroma pixels
       { name: '16x16', diff: { max: 22.28, mean: 3.74 } },
-      // RGB Subsampling
-      { name: 'subsampling-8x8-121212', diff: { max: 0.73, mean: 0.15 } },
-      { name: 'subsampling-8x16-121111', diff: { max: 15.2, mean: 2.42 } },
-      { name: 'subsampling-8x16-121211', diff: { max: 6.41, mean: 1.18 } },
-      //{ name: 'subsampling-8x16-121214', diff: { max: 42.4, mean: 15.56 } },// wrong
-      //{ name: 'subsampling-8x16-212222', diff: { max: 92.03, mean: 43.43 } },// wrong
-      { name: 'subsampling-16x8-211111', diff: { max: 22.68, mean: 2.66 } },
-      //{ name: 'subsampling-16x16-212211', diff: { max: 49.79, mean: 10.39 } },// wrong
-      // { name: 'subsampling-16x16-212212', diff: { max: 54.02, mean: 15.97 } },// wrong
-      { name: 'subsampling-16x16-221111', diff: { max: 22.37, mean: 3.68 } },
-      //{ name: 'subsampling-16x16-222141', diff: { max: 94.52, mean: 43.89 } },// wrong
-      { name: 'subsampling-16x16-222211', diff: { max: 22.24, mean: 2.42 } },
-      //{ name: 'subsampling-16x32-211414', diff: { max: 54.51, mean: 9.24 } },// wrong
-      //{ name: 'subsampling-16x32-241111', diff: { max: 41.72, mean: 10.16 } },// wrong
-      //{ name: 'subsampling-32x8-114121', diff: { max: 84.24, mean: 19.78 } },// wrong
-      { name: 'subsampling-32x8-411111', diff: { max: 2.43, mean: 0.19 } },
-      //{ name: 'subsampling-32x16-221141', diff: { max: 83.7, mean: 27.1 } },// wrong
-      //{ name: 'subsampling-32x32-111441', diff: { max: 97.2, mean: 44.89 } },// wrong
-      /* Samplin factor 3 not implemented yet
-      { name: 'subsampling-8x24-131311', diff: { max: 0, mean: 0 } },
-      { name: 'subsampling-16x24-112313', diff: { max: 0, mean: 0 } },
-      { name: 'subsampling-24x8-111131', diff: { max: 0, mean: 0 } },
-      { name: 'subsampling-24x8-121232', diff: { max: 0, mean: 0 } },
-      { name: 'subsampling-24x16-111231', diff: { max: 0, mean: 0 } },
-      { name: 'subsampling-24x16-113211', diff: { max: 0, mean: 0 } },
-      { name: 'subsampling-24x16-121132', diff: { max: 0, mean: 0 } },
-      { name: 'subsampling-24x16-311231', diff: { max: 0, mean: 0 } },
-      { name: 'subsampling-24x24-131331', diff: { max: 0, mean: 0 } },
-      { name: 'subsampling-24x32-311114', diff: { max: 0, mean: 0 } },
-      */
     ]) {
       // Decode with libjpeg for reference
       const fileName = `src/__tests__/images/${jpegFile.name}.jpg`
@@ -164,11 +128,7 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
         meanDistance > jpegFile.diff.mean
       ) {
         throw Error(
-          `Unexpected pixel color diff { name: '${
-            jpegFile.name
-          }', diff: { max: ${ceil2(maxDistance)}, mean: ${ceil2(
-            meanDistance
-          )} } }`
+          `Unexpected pixel color diff (max=${maxDistance}, mean=${meanDistance})`
         )
       }
       // Write expected decoder result which is used in decoder tests
@@ -182,3 +142,105 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     console.log(e)
   }
 })()
+
+const possibleSamplingFrequencies = [1, 2, 3, 4]
+
+const samplingFerquencies = new Map<number, Map<string, number[][]>>()
+for (const yh of possibleSamplingFrequencies) {
+  for (const yv of possibleSamplingFrequencies) {
+    for (const cbh of possibleSamplingFrequencies) {
+      for (const cbv of possibleSamplingFrequencies) {
+        for (const crh of possibleSamplingFrequencies) {
+          for (const crv of possibleSamplingFrequencies) {
+            const dataUnitCount = yh * yv + cbh * cbv + crh * crv
+            if (dataUnitCount > 10) {
+              continue
+            }
+            let sfs = samplingFerquencies.get(dataUnitCount)
+            if (!sfs) {
+              sfs = new Map()
+              samplingFerquencies.set(dataUnitCount, sfs)
+            }
+            const value = [yh, yv, cbh, cbv, crh, crv]
+            const key = value.slice().sort().join(',')
+            let values = sfs.get(key)
+            if (values == null) {
+              values = []
+              sfs.set(key, values)
+            }
+            values.push(value)
+          }
+        }
+      }
+    }
+  }
+}
+for (const count of Array.from(samplingFerquencies.keys()).sort(
+  (a, b) => a - b
+)) {
+  const exampleSFreq: number[][] = []
+  samplingFerquencies.get(count).forEach((a, b) => {
+    exampleSFreq.push(a[Math.floor(Math.random() * a.length)])
+  })
+  console.log(count, exampleSFreq)
+}
+
+const exampleSubSamplingFactors3Comps = [
+  // 4 data units
+  [1, 2, 1, 1, 1, 1], // 4:2:2 vertical
+  [2, 1, 1, 1, 1, 1], // 4:2:2 horizontal
+  // 5 data units
+  [1, 1, 1, 1, 3, 1],
+  [1, 2, 1, 2, 1, 1],
+  // 6 data units
+  [2, 2, 1, 1, 1, 1], // 4:2:0 (chroma quartered)
+  [4, 1, 1, 1, 1, 1],
+  [1, 1, 1, 2, 3, 1],
+  [1, 2, 1, 2, 1, 2],
+  // 7 data units
+  [1, 1, 4, 1, 2, 1],
+  [2, 1, 2, 2, 1, 1],
+  [1, 3, 1, 3, 1, 1],
+  // [3, 1, 2, 1, 1, 2], // fractional sampling
+  // 8 data units
+  [1, 1, 3, 2, 1, 1],
+  [3, 1, 1, 1, 1, 4],
+  // [3, 1, 2, 2, 1, 1], // fractional sampling
+  [1, 2, 1, 2, 1, 4],
+  [2, 1, 2, 2, 1, 2],
+  [3, 1, 1, 2, 3, 1],
+  // 9 data units
+  [1, 2, 1, 1, 3, 2],
+  [1, 1, 1, 4, 4, 1],
+  [2, 2, 1, 1, 4, 1],
+  [2, 2, 2, 2, 1, 1],
+  // [3, 1, 4, 1, 1, 2], // fractional sampling
+  // [1, 2, 3, 1, 2, 2], // fractional sampling
+  [1, 3, 1, 3, 3, 1],
+  // 10 data units (allowed maximum)
+  [2, 4, 1, 1, 1, 1],
+  [1, 1, 2, 3, 1, 3],
+  [1, 2, 1, 2, 3, 2],
+  [2, 1, 1, 4, 1, 4],
+  [2, 2, 2, 1, 4, 1],
+  [2, 1, 2, 2, 2, 2],
+  // [3, 1, 4, 1, 1, 3], // fractional sampling
+  // [1, 3, 3, 1, 2, 2], // fractional sampling
+]
+
+const foo = exampleSubSamplingFactors3Comps.map(
+  ([yh, yv, cbh, cbv, crh, crv]) => {
+    const maxH = Math.max(yh, cbh, crh)
+    const maxV = Math.max(yv, cbv, crv)
+    // Size of the MCU in pixels
+    const mcuWidth = 8 * maxH
+    const mcuHeight = 8 * maxV
+    const fileName = `subsampling-${mcuWidth}x${mcuHeight}-${yh}${yv}${cbh}${cbv}${crh}${crv}`
+    return [
+      `convert -define jpeg:dct-method=float -sampling-factor ${yh}x${yv},${cbh}x${cbv},${crh}x${crv} -quality 85 original/${mcuWidth}x${mcuHeight}.png ${fileName}.jpg`,
+      `| [${fileName}.jpg](${fileName}.jpg) | [${fileName}.ts](${fileName}.ts) | [${fileName}-expected.png](${fileName}-expected.png) | RGB image with subsampling ${yh}x${yv},${cbh}x${cbv},${crh}x${crv} and single MCU (Quality 85, Optimized, Floating point baseline DCT). |`,
+    ]
+  }
+)
+console.log(foo.map(([cmd]) => cmd).join('\n'))
+console.log(foo.map(([, md]) => md).join('\n'))
