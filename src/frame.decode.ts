@@ -117,9 +117,6 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
           if (h < 1 || h > 4 || v < 1 || v > 4) {
             throw Error('Invalid sampling factor')
           }
-          if (h === 3 || v === 3) {
-            throw Error('Unsupported sampling factor')
-          }
           minH = min(minH, h)
           maxH = max(maxH, h)
           minV = min(minV, v)
@@ -127,8 +124,8 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
           mcuDataUnitCount += h * v
         }
         // Size of the MCU in pixels
-        const mcuWidth = (8 * maxH) / minH
-        const mcuHeight = (8 * maxV) / minV
+        const mcuWidth = 8 * maxH
+        const mcuHeight = 8 * maxV
         // Number of MCU columns/rows
         const mcuColumns = ceil(width / mcuWidth)
         const mcuRows = ceil(height / mcuHeight)
@@ -189,11 +186,11 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
                     for (let g = 0; g < vv; g += 1) {
                       for (let f = 0; f < hh; f += 1) {
                         mapIndices[
-                          (i * 32 * h * v +
-                            j * 8 +
-                            zy * 8 * vv * maxH +
+                          (i * 64 * maxH * vv +
+                            j * 8 * hh +
+                            zy * 8 * hh * vv * h +
                             zx * hh +
-                            g * 8 * hh +
+                            g * 8 * hh * h +
                             f) *
                             3 +
                             k

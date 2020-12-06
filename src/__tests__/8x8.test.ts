@@ -6,7 +6,6 @@ import jpeg8x16Expected from './images/8x16'
 import jpeg16x8Expected from './images/16x8'
 import jpeg16x16Expected from './images/16x16'
 
-
 describe('images', () => {
   it('8x8.jpg decodes to expected image', async () => {
     const jpegData = readImageFile('8x8.jpg')
@@ -86,6 +85,26 @@ describe('images', () => {
     'subsampling-16x16-221111',
     'subsampling-16x16-222211',
     'subsampling-32x8-411111',
+    'subsampling-8x32-121214',
+    'subsampling-16x16-212222',
+    'subsampling-16x16-212211',
+    'subsampling-16x16-212212',
+    'subsampling-32x16-222141',
+    'subsampling-16x32-211414',
+    'subsampling-16x32-241111',
+    'subsampling-32x8-114121',
+    'subsampling-32x16-221141',
+    'subsampling-32x32-111441',
+    'subsampling-8x24-131311',
+    'subsampling-16x24-112313',
+    'subsampling-24x8-111131',
+    'subsampling-24x16-121232',
+    'subsampling-24x16-111231',
+    'subsampling-24x16-113211',
+    'subsampling-24x16-121132',
+    'subsampling-24x16-311231',
+    'subsampling-24x24-131331',
+    'subsampling-24x32-311114',
   ]) {
     it(`${fileName}.jpg decodes to expected image`, async () => {
       const jpegData = readImageFile(`${fileName}.jpg`)
