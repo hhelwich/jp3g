@@ -148,31 +148,36 @@ const possibleSamplingFrequencies = [1, 2, 3, 4]
 const samplingFerquencies = new Map<number, Map<string, number[][]>>()
 for (const yh of possibleSamplingFrequencies) {
   for (const yv of possibleSamplingFrequencies) {
+    /*
     for (const cbh of possibleSamplingFrequencies) {
       for (const cbv of possibleSamplingFrequencies) {
         for (const crh of possibleSamplingFrequencies) {
           for (const crv of possibleSamplingFrequencies) {
-            const dataUnitCount = yh * yv + cbh * cbv + crh * crv
-            if (dataUnitCount > 10) {
-              continue
-            }
-            let sfs = samplingFerquencies.get(dataUnitCount)
-            if (!sfs) {
-              sfs = new Map()
-              samplingFerquencies.set(dataUnitCount, sfs)
-            }
-            const value = [yh, yv, cbh, cbv, crh, crv]
-            const key = value.slice().sort().join(',')
-            let values = sfs.get(key)
-            if (values == null) {
-              values = []
-              sfs.set(key, values)
-            }
-            values.push(value)
+            */
+    const dataUnitCount = yh * yv //+ cbh * cbv + crh * crv
+    if (dataUnitCount > 10) {
+      continue
+    }
+    let sfs = samplingFerquencies.get(dataUnitCount)
+    if (!sfs) {
+      sfs = new Map()
+      samplingFerquencies.set(dataUnitCount, sfs)
+    }
+    const value = [yh, yv] //, cbh, cbv, crh, crv]
+    const key = value.slice().sort().join(',')
+    let values = sfs.get(key)
+    if (values == null) {
+      values = []
+      sfs.set(key, values)
+    }
+    values.push(value)
+    /*
           }
         }
+
       }
     }
+    */
   }
 }
 for (const count of Array.from(samplingFerquencies.keys()).sort(
@@ -228,19 +233,34 @@ const exampleSubSamplingFactors3Comps = [
   // [1, 3, 3, 1, 2, 2], // fractional sampling
 ]
 
-const foo = exampleSubSamplingFactors3Comps.map(
-  ([yh, yv, cbh, cbv, crh, crv]) => {
-    const maxH = Math.max(yh, cbh, crh)
-    const maxV = Math.max(yv, cbv, crv)
+const exampleSubSamplingFactors1Comp = [
+  // 2 data units
+  [2, 1],
+  // 3 data units
+  [1, 3],
+  // 4 data units
+  [1, 4],
+  [2, 2],
+  // 6 data units
+  [2, 3],
+  // 8 data units
+  [2, 4],
+  // 9 data units
+  [3, 3],
+]
+
+const foo = exampleSubSamplingFactors1Comp.map(
+  ([yh, yv /*, cbh, cbv, crh, crv*/]) => {
     // Size of the MCU in pixels
-    const mcuWidth = 8 * maxH
-    const mcuHeight = 8 * maxV
-    const fileName = `subsampling-${mcuWidth}x${mcuHeight}-${yh}${yv}${cbh}${cbv}${crh}${crv}`
+    const mcuWidth = 8 * yh
+    const mcuHeight = 8 * yv
+    const fileName = `subsampling-gray-${mcuWidth}x${mcuHeight}-${yh}${yv}`
     return [
-      `convert -define jpeg:dct-method=float -sampling-factor ${yh}x${yv},${cbh}x${cbv},${crh}x${crv} -quality 85 original/${mcuWidth}x${mcuHeight}.png ${fileName}.jpg`,
-      `| [${fileName}.jpg](${fileName}.jpg) | [${fileName}.ts](${fileName}.ts) | [${fileName}-expected.png](${fileName}-expected.png) | RGB image with subsampling ${yh}x${yv},${cbh}x${cbv},${crh}x${crv} and single MCU (Quality 85, Optimized, Floating point baseline DCT). |`,
+      `convert -define jpeg:dct-method=float -sampling-factor ${yh}x${yv} -quality 85 -colorspace gray original/${mcuWidth}x${mcuHeight}.png ${fileName}.jpg`,
+      `| [${fileName}.jpg](${fileName}.jpg) | [${fileName}.ts](${fileName}.ts) | [${fileName}-expected.png](${fileName}-expected.png) | Gray image with subsampling ${yh}x${yv} and single MCU (Quality 85, Optimized, Floating point baseline DCT). |`,
     ]
   }
 )
+
 console.log(foo.map(([cmd]) => cmd).join('\n'))
 console.log(foo.map(([, md]) => md).join('\n'))
