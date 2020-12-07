@@ -1,11 +1,12 @@
-import { Jpeg } from '../../jpeg'
+import { JFIFUnits, Jpeg } from '../../jpeg'
 
 const jpeg: Jpeg = [
   { type: 'SOI' },
   {
-    type: 'APP',
-    appType: 0,
-    data: new Uint8Array([74, 70, 73, 70, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0]),
+    type: 'JFIF',
+    version: [1, 1],
+    units: JFIFUnits.PixelAspectRatio,
+    density: { x: 1, y: 1 },
   },
   {
     type: 'DQT',

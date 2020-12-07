@@ -11,7 +11,10 @@ const jpeg: Jpeg = [
   {
     type: 'APP',
     appType: 14,
-    data: new Uint8Array([65, 100, 111, 98, 101, 0, 100, 0, 0, 0, 0, 2]),
+    // prettier-ignore
+    data: new Uint8Array([
+      65, 100, 111, 98, 101, 0, 100, 0, 0, 0, 0, 2,
+    ]),
   },
   {
     type: 'DQT',

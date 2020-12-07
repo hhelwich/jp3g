@@ -136,75 +136,52 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
         const lastDcs = zeros(componentCount)
         // Create buffer to hold the data units for each MCU row
         const yCbCr = new Float64Array(mcuColumns * mcuDataUnitCount * 64)
-        let yCbCrOffset = 0
-        for (let mcuColumn = 0; mcuColumn < mcuColumns; mcuColumn += 1) {
-          for (let k = 0; k < componentCount; k += 1) {
-            const component = components[k]
-            const { h, v, qId } = frameComponents[component.id]
-            const quantizationTable = quantizationTables[qId]
-            for (let i = 0; i < v; i += 1) {
-              for (let j = 0; j < h; j += 1) {
-                // Decode data unit
-                //
-                const qcoeff = decodeCoeff(
-                  lastDcs[k],
-                  huffmanTablesDC[component.dcId],
-                  huffmanTablesAC[component.acId]
-                )
-                lastDcs[k] = qcoeff[0]
-                //
-                const coeff: number[] = []
-                dequantize(quantizationTable.values, qcoeff, coeff)
-                //
-                const values = idct(coeff)
-                // Decenter
-                const dvalues = decenter(values)
-                //
-                yCbCr.set(dvalues, yCbCrOffset)
-                yCbCrOffset += 64
-              }
-            }
-          }
-        }
-        const mapIndices = new Uint32Array(3 * width * height)
-        let i = 0
-        const mcuComponentUnits = components.map(({ id }) => {
-          const { h, v } = frameComponents[id]
-          return { size: h * v, skipX: h / maxH, skipY: v / maxV }
-        })
-        let y = 0
-        for (let mcuColumn = 0; mcuColumn < mcuColumns; mcuColumn += 1) {
-          for (let k = 0; k < componentCount; k += 1) {
-            const component = components[k]
-            const { h, v } = frameComponents[component.id]
-            const hh = maxH / h
-            const vv = maxV / v
-            for (let i = 0; i < v; i += 1) {
-              for (let j = 0; j < h; j += 1) {
-                for (let zy = 0; zy < 8; zy += 1) {
-                  for (let zx = 0; zx < 8; zx += 1) {
-                    for (let g = 0; g < vv; g += 1) {
-                      for (let f = 0; f < hh; f += 1) {
-                        mapIndices[
-                          (i * 64 * maxH * vv +
-                            j * 8 * hh +
-                            zy * 8 * hh * vv * h +
-                            zx * hh +
-                            g * 8 * hh * h +
-                            f) *
-                            3 +
-                            k
-                        ] = y
-                      }
-                    }
-                    y += 1
-                  }
+
+        const yCbCr2Rgb = nextYCbCr2Rgb(
+          yCbCr,
+          createMapIndices(
+            width,
+            mcuColumns,
+            mcuHeight,
+            components.map(({ id }) => frameComponents[id]),
+            maxH,
+            maxV
+          ),
+          data
+        )
+        for (let mcuRow = 0; mcuRow < mcuRows; mcuRow += 1) {
+          let yCbCrOffset = 0
+          for (let mcuColumn = 0; mcuColumn < mcuColumns; mcuColumn += 1) {
+            for (let k = 0; k < componentCount; k += 1) {
+              const component = components[k]
+              const { h, v, qId } = frameComponents[component.id]
+              const quantizationTable = quantizationTables[qId]
+              for (let i = 0; i < v; i += 1) {
+                for (let j = 0; j < h; j += 1) {
+                  // Decode data unit
+                  //
+                  const qcoeff = decodeCoeff(
+                    lastDcs[k],
+                    huffmanTablesDC[component.dcId],
+                    huffmanTablesAC[component.acId]
+                  )
+                  lastDcs[k] = qcoeff[0]
+                  //
+                  const coeff: number[] = []
+                  dequantize(quantizationTable.values, qcoeff, coeff)
+                  //
+                  const values = idct(coeff)
+                  // Decenter
+                  const dvalues = decenter(values)
+                  //
+                  yCbCr.set(dvalues, yCbCrOffset)
+                  yCbCrOffset += 64
                 }
               }
             }
           }
+          yCbCr2Rgb()
         }
-        yCbCr2Rgb(yCbCr, mapIndices, data)()
         break
       }
       case EOI:
@@ -217,8 +194,53 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
   return frame.imageData
 }
 
+const createMapIndices = (
+  width: number,
+  mcuColumns: number,
+  mcuHeight: number,
+  componentInfo: { h: number; v: number }[],
+  maxH: number,
+  maxV: number
+) => {
+  const mapIndices = new Uint32Array(3 * width * mcuHeight)
+  let y = 0
+  const componentCount = componentInfo.length
+  for (let mcuColumn = 0; mcuColumn < mcuColumns; mcuColumn += 1) {
+    for (let k = 0; k < componentCount; k += 1) {
+      const { h, v } = componentInfo[k]
+      const hh = maxH / h
+      const vv = maxV / v
+      for (let i = 0; i < v; i += 1) {
+        for (let j = 0; j < h; j += 1) {
+          for (let zy = 0; zy < 8; zy += 1) {
+            for (let zx = 0; zx < 8; zx += 1) {
+              for (let g = 0; g < vv; g += 1) {
+                for (let f = 0; f < hh; f += 1) {
+                  mapIndices[
+                    (mcuColumn * 8 +
+                      i * 64 * maxH * vv +
+                      j * 8 * hh +
+                      zy * 8 * hh * vv * h * mcuColumns +
+                      zx * hh +
+                      g * 8 * hh * h +
+                      f) *
+                      3 +
+                      k
+                  ] = y
+                }
+              }
+              y += 1
+            }
+          }
+        }
+      }
+    }
+  }
+  return mapIndices
+}
+
 // TODO: Extract to module
-const yCbCr2Rgb = (
+const nextYCbCr2Rgb = (
   source: Float64Array,
   mapIndices: Uint32Array,
   target: Uint8ClampedArray

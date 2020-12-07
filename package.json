@@ -15,19 +15,19 @@
     "test-watch": "jest --watch",
     "format": "prettier --write .",
     "build": "del-cli dist && rollup -c && tsc -d --emitDeclarationOnly --resolveJsonModule --declarationDir dist --lib ES2019.Array,WebWorker src/index.ts && mv dist/src/ dist/types",
-    "generate-test-images": "[ ! -d tmp ] && tsc --esModuleInterop --outDir tmp src/__tests__/util/generateTestImagesScript.ts && node tmp/__tests__/util/generateTestImagesScript.js && rm -r tmp"
+    "generate-test-images": "tsc --esModuleInterop --outDir tmp src/__tests__/util/generateTestImagesScript.ts && node tmp/__tests__/util/generateTestImagesScript.js; del-cli tmp; npm run format"
   },
   "devDependencies": {
     "@rollup/plugin-json": "^4.1.0",
     "@rollup/plugin-typescript": "^8.0.0",
-    "@types/jest": "^26.0.16",
-    "@types/node": "^14.14.10",
+    "@types/jest": "^26.0.18",
+    "@types/node": "^14.14.11",
     "@types/sharp": "^0.26.1",
     "canvas": "^2.6.1",
     "del-cli": "^3.0.1",
     "jest": "^26.6.3",
     "prettier": "^2.2.1",
-    "rollup": "^2.34.1",
+    "rollup": "^2.34.2",
     "rollup-plugin-terser": "^7.0.2",
     "sharp": "^0.26.3",
     "ts-jest": "^26.4.4",

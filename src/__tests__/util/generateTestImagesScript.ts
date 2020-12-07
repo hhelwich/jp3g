@@ -1,9 +1,12 @@
-import { readFileSync } from 'fs'
+import { readFileSync, writeFileSync } from 'fs'
 import { createCanvas } from 'canvas'
 import { decodeJpeg } from '../../jpeg.decode'
 import { decodeFrame } from '../../frame.decode'
 import { distanceRgb } from './distanceRgb'
 import sharp from 'sharp'
+import { JFIFUnits, Jpeg } from '../../jpeg'
+
+const imageDir = 'src/__tests__/images/'
 
 /**
  * Create test image data which has full red, green, blue (when square), black
@@ -77,7 +80,7 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     ] as [number, number][]) {
       await writeImageData(
         createTestImage(width, height),
-        `src/__tests__/images/original/${width}x${height}.png`
+        `${imageDir}original/${width}x${height}.png`
       )
     }
     // Iterate all JPEG images which are used to test the decoder and create a
@@ -89,7 +92,7 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
       { name: '8x16', diff: { max: 14.82, mean: 2.68 } },
       { name: '16x8', diff: { max: 18.07, mean: 2.52 } },
       // Quatered chroma pixels
-      { name: '16x16', diff: { max: 22.28, mean: 3.74 } },
+      { name: '16x16', diff: { max: 3.79, mean: 0.17 } },
       // RGB Subsampling
       { name: 'subsampling-8x16-121111', diff: { max: 15.2, mean: 2.42 } },
       { name: 'subsampling-8x16-121211', diff: { max: 6.41, mean: 1.18 } },
@@ -120,7 +123,7 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
       { name: 'subsampling-24x32-311114', diff: { max: 1.42, mean: 0.15 } },
     ]) {
       // Decode with libjpeg for reference
-      const fileName = `src/__tests__/images/${jpegFile.name}.jpg`
+      const fileName = `${imageDir}${jpegFile.name}.jpg`
       const referenceImage = await sharp(fileName)
         .raw()
         .toBuffer({ resolveWithObject: true })
@@ -161,8 +164,7 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
         maxDistance > jpegFile.diff.max ||
         meanDistance > jpegFile.diff.mean
       ) {
-        //throw Error(
-        console.log(
+        throw Error(
           `Unexpected pixel color diff { name: '${
             jpegFile.name
           }', diff: { max: ${ceil2(maxDistance)}, mean: ${ceil2(
@@ -171,13 +173,113 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
         )
       }
       // Write expected decoder result which is used in decoder tests
-      await writeImageData(
-        image,
-        `src/__tests__/images/${jpegFile.name}-expected.png`
-      )
+      await writeImageData(image, `${imageDir}${jpegFile.name}-expected.png`)
     }
     console.log('OK')
   } catch (e) {
     console.log(e)
   }
 })()
+
+const list2ts = (list: any, indent: string, width = 80): string =>
+  (Array.from(list) as any[])
+    .reduce(
+      (lines: string[], element) => {
+        let value = `${JSON.stringify(element)},`
+        let line = lines[0]
+        if ((line + ' ' + value).length > width) {
+          lines.unshift(indent + value)
+        } else {
+          lines[0] += (line === indent ? '' : ' ') + value
+        }
+        return lines
+      },
+      [indent]
+    )
+    .reverse()
+    .join('\n')
+
+const dqt2ts = (value: number[], indent: string) => {
+  const maxLength = Math.max(...value.map(s => `${s}`.length))
+  let line = ''
+  for (let row = 0; row < 8; row += 1) {
+    line += indent + '  '
+    const vals: string[] = []
+    for (let col = 0; col < 8; col += 1) {
+      let nbr = `${value[col + row * 8]}`
+      while (nbr.length < maxLength) {
+        nbr = ' ' + nbr
+      }
+      vals.push(nbr)
+    }
+    line += vals.join(', ') + ',\n'
+  }
+  return `\n${indent}// prettier-ignore\n${indent}values: [\n${line}${indent}]`
+}
+
+const jpegValue2ts = (value: any) =>
+  Array.isArray(value)
+    ? `[${value.map(jpegValue2ts).join(',')}]`
+    : typeof value === 'object' && value !== null
+    ? `{${Object.entries(value)
+        .map(([key, value]: [any, any]) => {
+          if (key === 'data' && value instanceof Uint8Array) {
+            return (
+              '\n' +
+              [
+                '    // prettier-ignore',
+                '    data: new Uint8Array([',
+                list2ts(value, '      '),
+                '    ])',
+              ].join('\n')
+            )
+          }
+          if (key === 'values' && value?.length === 64) {
+            return dqt2ts(value, '        ')
+          }
+          if (key === 'units') {
+            return `${key}: ${
+              value === JFIFUnits.PixelAspectRatio
+                ? 'JFIFUnits.PixelAspectRatio'
+                : value === JFIFUnits.DotsPerInch
+                ? 'JFIFUnits.DotsPerInch'
+                : value === JFIFUnits.DotsPerCm
+                ? 'JFIFUnits.DotsPerCm'
+                : jpegValue2ts(value)
+            }`
+          }
+          return `${key}: ${jpegValue2ts(value)}`
+        })
+        .join(',')}}`
+    : JSON.stringify(value)
+
+const jpeg2ts = (jpeg: Jpeg) => `
+  import { ${
+    jpeg.find(({ type }) => type === 'JFIF') ? 'JFIFUnits, ' : ''
+  }Jpeg } from '../../jpeg'
+
+  const jpeg: Jpeg = ${jpegValue2ts(jpeg)}
+
+  export default jpeg`
+
+/**
+ * Generate expected object files from images.
+ */
+for (const jpegFileName of [
+  '7x11',
+  '8x8',
+  '8x8-cmyk',
+  '8x8-gray',
+  '8x8-thumbnail',
+  '8x8-with-thumbnail',
+  '8x16',
+  '11x7',
+  '16x8',
+  '16x16',
+  '32x32',
+  'lotti-8-4:4:4-90',
+]) {
+  const fileName = `${imageDir}${jpegFileName}.jpg`
+  const jpeg = decodeJpeg(new Uint8Array(readFileSync(fileName)))
+  writeFileSync(`${imageDir}${jpegFileName}.ts`, jpeg2ts(jpeg))
+}
