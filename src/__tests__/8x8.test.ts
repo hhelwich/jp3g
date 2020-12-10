@@ -1,10 +1,15 @@
-import { readImageFile, readImageDataFromPng } from './util/testUtil'
+import {
+  readImageFile,
+  readImageDataFromPng,
+  writeImageDataToPng,
+} from './util/testUtil'
 import { decodeJpeg } from '../jpeg.decode'
 import { decodeFrame } from '../frame.decode'
 import jpeg8x8Expected from './images/8x8'
 import jpeg8x16Expected from './images/8x16'
 import jpeg16x8Expected from './images/16x8'
 import jpeg16x16Expected from './images/16x16'
+import { writeFileSync } from 'fs'
 
 describe('images', () => {
   it('8x8.jpg decodes to expected image', async () => {
@@ -68,6 +73,30 @@ describe('images', () => {
           await (
             await readImageDataFromPng(
               'src/__tests__/images/16x16-expected.png'
+            )
+          ).data
+        )
+      )
+    ).toBe(
+      0
+      //await readImageDataFromPng('src/__tests__/images/16x16-expected.png')
+    )
+  })
+
+  it('32x32-subsampling-221221-mcu-2x2-expected.jpg decodes to expected image', async () => {
+    const jpegData = readImageFile('32x32-subsampling-221221-mcu-2x2.jpg')
+    const jpeg = decodeJpeg(jpegData)
+    expect(jpeg).toEqual(
+      (await import('./images/32x32-subsampling-221221-mcu-2x2')).default
+    )
+    const imageData = decodeFrame(jpeg)
+
+    expect(
+      Buffer.from(imageData.data).compare(
+        Buffer.from(
+          await (
+            await readImageDataFromPng(
+              'src/__tests__/images/32x32-subsampling-221221-mcu-2x2-expected.png'
             )
           ).data
         )

@@ -91,8 +91,12 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
       // Halved chroma pixels. Libjpeg seems to do some interpolation?
       { name: '8x16', diff: { max: 14.82, mean: 2.68 } },
       { name: '16x8', diff: { max: 18.07, mean: 2.52 } },
-      // Quatered chroma pixels
+      //
       { name: '16x16', diff: { max: 3.79, mean: 0.17 } },
+      {
+        name: '32x32-subsampling-221221-mcu-2x2',
+        diff: { max: 19.19, mean: 1.07 },
+      },
       // RGB Subsampling
       { name: 'subsampling-8x16-121111', diff: { max: 15.2, mean: 2.42 } },
       { name: 'subsampling-8x16-121211', diff: { max: 6.41, mean: 1.18 } },
@@ -278,6 +282,7 @@ for (const jpegFileName of [
   '16x16',
   '32x32',
   'lotti-8-4:4:4-90',
+  '32x32-subsampling-221221-mcu-2x2',
 ]) {
   const fileName = `${imageDir}${jpegFileName}.jpg`
   const jpeg = decodeJpeg(new Uint8Array(readFileSync(fileName)))

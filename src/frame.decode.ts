@@ -217,12 +217,12 @@ const createMapIndices = (
               for (let g = 0; g < vv; g += 1) {
                 for (let f = 0; f < hh; f += 1) {
                   mapIndices[
-                    (mcuColumn * 8 +
-                      i * 64 * maxH * vv +
+                    (mcuColumn * h * 8 * hh +
+                      i * 64 * maxH * vv * mcuColumns +
                       j * 8 * hh +
                       zy * 8 * hh * vv * h * mcuColumns +
                       zx * hh +
-                      g * 8 * hh * h +
+                      g * 8 * hh * h * mcuColumns +
                       f) *
                       3 +
                       k
