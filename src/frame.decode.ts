@@ -205,28 +205,30 @@ const createMapIndices = (
   const mapIndices = new Uint32Array(3 * width * mcuHeight)
   let y = 0
   const componentCount = componentInfo.length
+  // Iterate MCU columns
   for (let mcuColumn = 0; mcuColumn < mcuColumns; mcuColumn += 1) {
+    // Iterate components in MCU
     for (let k = 0; k < componentCount; k += 1) {
       const { h, v } = componentInfo[k]
       const hh = maxH / h
       const vv = maxV / v
+      // Iterate component data unit rows in MCU
       for (let i = 0; i < v; i += 1) {
+        // Iterate component data unit columns in MCU
         for (let j = 0; j < h; j += 1) {
+          // Iterate rows in data unit
           for (let zy = 0; zy < 8; zy += 1) {
+            // iterate columns in data unit
             for (let zx = 0; zx < 8; zx += 1) {
+              // Vertical duplication
               for (let g = 0; g < vv; g += 1) {
+                // Horizontal duplication
                 for (let f = 0; f < hh; f += 1) {
-                  mapIndices[
-                    (mcuColumn * h * 8 * hh +
-                      i * 64 * maxH * vv * mcuColumns +
-                      j * 8 * hh +
-                      zy * 8 * hh * vv * h * mcuColumns +
-                      zx * hh +
-                      g * 8 * hh * h * mcuColumns +
-                      f) *
-                      3 +
-                      k
-                  ] = y
+                  const x = ((mcuColumn * h + j) * 8 + zx) * hh + f
+                  const _y = (i * 8 + zy) * vv + g
+                  if (x < width) {
+                    mapIndices[(_y * width + x) * 3 + k] = y
+                  }
                 }
               }
               y += 1
@@ -245,12 +247,13 @@ const nextYCbCr2Rgb = (
   mapIndices: Uint32Array,
   target: Uint8ClampedArray
 ) => {
-  const length = mapIndices.length // width * height * 3
+  const length = mapIndices.length // width * mcuHeight * 3
   let offset = 0
   let Y: number
   let Cb: number
   let Cr: number
   return () => {
+    // Note: In the last MCU row we might write outside array range
     for (let i = 0; i < length; ) {
       Y = source[mapIndices[i++]]
       Cb = source[mapIndices[i++]]

@@ -76,6 +76,7 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
       [32, 16],
       [32, 24],
       [32, 32],
+      [35, 35],
       */
     ] as [number, number][]) {
       await writeImageData(
@@ -96,6 +97,10 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
       {
         name: '32x32-subsampling-221221-mcu-2x2',
         diff: { max: 19.19, mean: 1.07 },
+      },
+      {
+        name: '35x35-subsampling-122111-partial-mcu-3x3',
+        diff: { max: 27.65, mean: 2.05 },
       },
       // RGB Subsampling
       { name: 'subsampling-8x16-121111', diff: { max: 15.2, mean: 2.42 } },
@@ -283,6 +288,7 @@ for (const jpegFileName of [
   '32x32',
   'lotti-8-4:4:4-90',
   '32x32-subsampling-221221-mcu-2x2',
+  '35x35-subsampling-122111-partial-mcu-3x3',
 ]) {
   const fileName = `${imageDir}${jpegFileName}.jpg`
   const jpeg = decodeJpeg(new Uint8Array(readFileSync(fileName)))

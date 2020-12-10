@@ -107,6 +107,39 @@ describe('images', () => {
     )
   })
 
+  it('35x35-subsampling-122111-partial-mcu-3x3-expected.jpg decodes to expected image', async () => {
+    const jpegData = readImageFile(
+      '35x35-subsampling-122111-partial-mcu-3x3.jpg'
+    )
+    const jpeg = decodeJpeg(jpegData)
+    expect(jpeg).toEqual(
+      (await import('./images/35x35-subsampling-122111-partial-mcu-3x3'))
+        .default
+    )
+    const imageData = decodeFrame(jpeg)
+    /*
+    await writeImageDataToPng(
+      imageData,
+      '35x35-subsampling-122111-partial-mcu-3x3-foo'
+    )
+    */
+
+    expect(
+      Buffer.from(imageData.data).compare(
+        Buffer.from(
+          await (
+            await readImageDataFromPng(
+              'src/__tests__/images/35x35-subsampling-122111-partial-mcu-3x3-expected.png'
+            )
+          ).data
+        )
+      )
+    ).toBe(
+      0
+      //await readImageDataFromPng('src/__tests__/images/16x16-expected.png')
+    )
+  })
+
   for (const fileName of [
     'subsampling-8x16-121111',
     'subsampling-8x16-121211',
@@ -140,6 +173,11 @@ describe('images', () => {
       const jpeg = decodeJpeg(jpegData)
       //expect(jpeg).toEqual(jpeg8x8Expected)
       const imageData = decodeFrame(jpeg)
+      /*
+      if (fileName === 'subsampling-8x32-121214') {
+        await writeImageDataToPng(imageData, fileName + 'fooo')
+      }
+      */
       expect(
         Buffer.from(imageData.data).compare(
           Buffer.from(
