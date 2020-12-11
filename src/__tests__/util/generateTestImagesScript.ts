@@ -53,6 +53,7 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     .removeAlpha()
     .toFile(fileName)
 
+type FileInfo = { name: string; diff: { max: number; mean: number } }
 ;(async () => {
   try {
     // Generate some images which are used as source to create JPEG test images
@@ -86,51 +87,50 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     }
     // Iterate all JPEG images which are used to test the decoder and create a
     // PNG image to hold the expected result.
+    const diffs: FileInfo[] = []
+    let differentDiff = false
+    let aboveDiff = false
     for (const jpegFile of [
-      // No subsampling here. Error because of libjpeg perf. optimizations?
-      { name: '8x8', diff: { max: 3.63, mean: 0.22 } },
-      // Halved chroma pixels. Libjpeg seems to do some interpolation?
-      { name: '8x16', diff: { max: 14.82, mean: 2.68 } },
-      { name: '16x8', diff: { max: 18.07, mean: 2.52 } },
-      //
-      { name: '16x16', diff: { max: 3.79, mean: 0.17 } },
+      { name: '8x8', diff: { max: 0.3, mean: 0.02 } },
+      { name: '8x16', diff: { max: 15.15, mean: 2.67 } },
+      { name: '16x8', diff: { max: 18.07, mean: 2.5 } },
+      { name: '16x16', diff: { max: 0.37, mean: 0.01 } },
       {
         name: '32x32-subsampling-221221-mcu-2x2',
-        diff: { max: 19.19, mean: 1.07 },
+        diff: { max: 18.81, mean: 1.06 },
       },
       {
         name: '35x35-subsampling-122111-partial-mcu-3x3',
-        diff: { max: 27.65, mean: 2.05 },
+        diff: { max: 28.81, mean: 2.05 },
       },
-      // RGB Subsampling
-      { name: 'subsampling-8x16-121111', diff: { max: 15.2, mean: 2.42 } },
-      { name: 'subsampling-8x16-121211', diff: { max: 6.41, mean: 1.18 } },
-      { name: 'subsampling-8x16-121212', diff: { max: 0.77, mean: 0.13 } },
-      { name: 'subsampling-8x32-121214', diff: { max: 20.55, mean: 2.04 } },
-      { name: 'subsampling-16x16-212222', diff: { max: 11.58, mean: 1.72 } },
+      { name: 'subsampling-8x16-121111', diff: { max: 15.2, mean: 2.4 } },
+      { name: 'subsampling-8x16-121211', diff: { max: 6.41, mean: 1.17 } },
+      { name: 'subsampling-8x16-121212', diff: { max: 0.36, mean: 0.01 } },
+      { name: 'subsampling-8x32-121214', diff: { max: 20.55, mean: 2.03 } },
+      { name: 'subsampling-16x16-212222', diff: { max: 11.41, mean: 1.7 } },
       { name: 'subsampling-16x8-211111', diff: { max: 22.68, mean: 2.66 } },
       { name: 'subsampling-16x16-212211', diff: { max: 23.59, mean: 3.39 } },
-      { name: 'subsampling-16x16-212212', diff: { max: 18.52, mean: 3 } },
-      { name: 'subsampling-16x16-221111', diff: { max: 22.37, mean: 3.68 } },
-      { name: 'subsampling-32x16-222141', diff: { max: 24.47, mean: 2.77 } },
-      { name: 'subsampling-16x16-222211', diff: { max: 22.24, mean: 2.42 } },
-      { name: 'subsampling-16x32-211414', diff: { max: 22.79, mean: 1.95 } },
-      { name: 'subsampling-16x32-241111', diff: { max: 1.48, mean: 0.15 } },
-      { name: 'subsampling-32x8-114121', diff: { max: 15.78, mean: 1.38 } },
-      { name: 'subsampling-32x8-411111', diff: { max: 2.43, mean: 0.19 } },
-      { name: 'subsampling-32x16-221141', diff: { max: 22.03, mean: 1.63 } },
-      { name: 'subsampling-32x32-111441', diff: { max: 0.96, mean: 0.14 } },
-      { name: 'subsampling-8x24-131311', diff: { max: 0.78, mean: 0.14 } },
-      { name: 'subsampling-16x24-112313', diff: { max: 21.22, mean: 1.77 } },
-      { name: 'subsampling-24x8-111131', diff: { max: 1.39, mean: 0.18 } },
-      { name: 'subsampling-24x16-121232', diff: { max: 1.04, mean: 0.15 } },
-      { name: 'subsampling-24x16-111231', diff: { max: 19.84, mean: 1.12 } },
-      { name: 'subsampling-24x16-113211', diff: { max: 1.26, mean: 0.15 } },
-      { name: 'subsampling-24x16-121132', diff: { max: 1.05, mean: 0.14 } },
-      { name: 'subsampling-24x16-311231', diff: { max: 21.7, mean: 2.27 } },
-      { name: 'subsampling-24x24-131331', diff: { max: 1.13, mean: 0.15 } },
-      { name: 'subsampling-24x32-311114', diff: { max: 1.42, mean: 0.15 } },
-    ]) {
+      { name: 'subsampling-16x16-212212', diff: { max: 18.1, mean: 2.95 } },
+      { name: 'subsampling-16x16-221111', diff: { max: 22.31, mean: 3.66 } },
+      { name: 'subsampling-32x16-222141', diff: { max: 24.98, mean: 2.78 } },
+      { name: 'subsampling-16x16-222211', diff: { max: 22.24, mean: 2.4 } },
+      { name: 'subsampling-16x32-211414', diff: { max: 22.79, mean: 1.94 } },
+      { name: 'subsampling-16x32-241111', diff: { max: 0.35, mean: 0.02 } },
+      { name: 'subsampling-32x8-114121', diff: { max: 15.63, mean: 1.33 } },
+      { name: 'subsampling-32x8-411111', diff: { max: 0.43, mean: 0.01 } },
+      { name: 'subsampling-32x16-221141', diff: { max: 22.45, mean: 1.61 } },
+      { name: 'subsampling-32x32-111441', diff: { max: 0.44, mean: 0.02 } },
+      { name: 'subsampling-8x24-131311', diff: { max: 0.58, mean: 0.03 } },
+      { name: 'subsampling-16x24-112313', diff: { max: 21.22, mean: 1.74 } },
+      { name: 'subsampling-24x8-111131', diff: { max: 0.87, mean: 0.02 } },
+      { name: 'subsampling-24x16-121232', diff: { max: 0.68, mean: 0.01 } },
+      { name: 'subsampling-24x16-111231', diff: { max: 19.84, mean: 1.09 } },
+      { name: 'subsampling-24x16-113211', diff: { max: 1.24, mean: 0.03 } },
+      { name: 'subsampling-24x16-121132', diff: { max: 0.74, mean: 0.02 } },
+      { name: 'subsampling-24x16-311231', diff: { max: 21.7, mean: 2.26 } },
+      { name: 'subsampling-24x24-131331', diff: { max: 0.49, mean: 0.02 } },
+      { name: 'subsampling-24x32-311114', diff: { max: 1.12, mean: 0.04 } },
+    ] as FileInfo[]) {
       // Decode with libjpeg for reference
       const fileName = `${imageDir}${jpegFile.name}.jpg`
       const referenceImage = await sharp(fileName)
@@ -169,20 +169,32 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
           meanDistance += distance / count
         }
       }
+      maxDistance = ceil2(maxDistance)
+      meanDistance = ceil2(meanDistance)
+      diffs.push({
+        name: jpegFile.name,
+        diff: { max: maxDistance, mean: meanDistance },
+      })
       if (
-        maxDistance > jpegFile.diff.max ||
-        meanDistance > jpegFile.diff.mean
+        maxDistance !== jpegFile.diff.max ||
+        meanDistance !== jpegFile.diff.mean
       ) {
-        throw Error(
-          `Unexpected pixel color diff { name: '${
-            jpegFile.name
-          }', diff: { max: ${ceil2(maxDistance)}, mean: ${ceil2(
-            meanDistance
-          )} } }`
-        )
+        differentDiff = true
+        if (
+          maxDistance > jpegFile.diff.max ||
+          meanDistance > jpegFile.diff.mean
+        ) {
+          aboveDiff = true
+        }
       }
       // Write expected decoder result which is used in decoder tests
       await writeImageData(image, `${imageDir}${jpegFile.name}-expected.png`)
+    }
+    if (differentDiff) {
+      console.log(`Changed pixel difference ${JSON.stringify(diffs)}`)
+      if (aboveDiff) {
+        throw Error('Pixel difference is to high')
+      }
     }
     console.log('OK')
   } catch (e) {

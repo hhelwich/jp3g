@@ -135,7 +135,7 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
         const componentCount = components.length
         const lastDcs = zeros(componentCount)
         // Create buffer to hold the data units for each MCU row
-        const yCbCr = new Float64Array(mcuColumns * mcuDataUnitCount * 64)
+        const yCbCr = new Uint8ClampedArray(mcuColumns * mcuDataUnitCount * 64)
 
         const yCbCr2Rgb = nextYCbCr2Rgb(
           yCbCr,
@@ -243,7 +243,7 @@ const createMapIndices = (
 
 // TODO: Extract to module
 const nextYCbCr2Rgb = (
-  source: Float64Array,
+  source: Uint8ClampedArray,
   mapIndices: Uint32Array,
   target: Uint8ClampedArray
 ) => {

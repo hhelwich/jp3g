@@ -7,7 +7,7 @@ import { readImageFile } from './util/testUtil'
 import { decodeJpeg } from '../jpeg.decode'
 import { decodeFrame } from '../frame.decode'
 
-describe('Test image', () => {
+xdescribe('Test image', () => {
   it('baz', async () => {
     const jpegData = readImageFile('lotti-8-4:4:4-90.jpg')
     const jpeg = decodeJpeg(jpegData)
