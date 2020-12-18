@@ -1,4 +1,4 @@
-import { range } from '../util'
+import { range } from './util/testUtil'
 import { getHuffmanTree } from '../huffmanTable.decode'
 import { getHuffmanCodeCounts } from '../huffmanTable.encode'
 

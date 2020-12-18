@@ -1,5 +1,5 @@
 import { zigZag } from '../jpeg'
-import { range } from '../util'
+import { range } from './util/testUtil'
 
 describe('jpeg', () => {
   describe('zigZag indices', () => {

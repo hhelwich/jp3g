@@ -1,18 +1,5 @@
-import {
-  DHT,
-  DQT,
-  DQT_TABLE,
-  EOI,
-  HuffmanTree,
-  Jpeg,
-  SOF,
-  SOS,
-  zigZag,
-} from './jpeg'
-import { dequantize } from './quantization.decode'
-import { idct } from './dctOptimized.decode'
-import { decenter } from './dctCenter.decode'
-import { zeros } from './util'
+import { DHT, DQT, EOI, HuffmanTree, Jpeg, SOF, SOS, zigZag } from './jpeg'
+import { invDctQuantized } from './dctQuantized.decode'
 
 const { min, max, ceil } = Math
 
@@ -55,7 +42,7 @@ const createImageData = (width: number, height: number): ImageData => ({
 
 export const decodeFrame = (jpeg: Jpeg): ImageData => {
   const huffmanTables: [HuffmanTree[], HuffmanTree[]] = [[], []]
-  const quantizationTables: DQT_TABLE[] = []
+  const qTables: DQT['tables'] = []
   let frame:
     | {
         components: SOF['components']
@@ -71,7 +58,7 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
         break
       case DQT:
         for (const table of segment.tables) {
-          quantizationTables[table.id] = table
+          qTables[table.id] = table
         }
         break
       case SOF: {
@@ -131,9 +118,10 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
         const mcuRows = ceil(height / mcuHeight)
         //
         const [huffmanTablesDC, huffmanTablesAC] = huffmanTables
-        const decodeCoeff = createDecodeCoeff(segment.data)
+        const qCoeffs = new Int16Array(64)
+        const decodeQCoeffs = createDecodeQCoeffs(segment.data, qCoeffs)
         const componentCount = components.length
-        const lastDcs = zeros(componentCount)
+        const lastDcs = new Int16Array(componentCount)
         // Create buffer to hold the data units for each MCU row
         const yCbCr = new Uint8ClampedArray(mcuColumns * mcuDataUnitCount * 64)
 
@@ -155,26 +143,19 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
             for (let k = 0; k < componentCount; k += 1) {
               const component = components[k]
               const { h, v, qId } = frameComponents[component.id]
-              const quantizationTable = quantizationTables[qId]
+              const qTable = qTables[qId].values
               for (let i = 0; i < v; i += 1) {
                 for (let j = 0; j < h; j += 1) {
                   // Decode data unit
-                  //
-                  const qcoeff = decodeCoeff(
+                  decodeQCoeffs(
                     lastDcs[k],
                     huffmanTablesDC[component.dcId],
                     huffmanTablesAC[component.acId]
                   )
-                  lastDcs[k] = qcoeff[0]
+                  lastDcs[k] = qCoeffs[0]
                   //
-                  const coeff: number[] = []
-                  dequantize(quantizationTable.values, qcoeff, coeff)
+                  invDctQuantized(qTable, qCoeffs, yCbCr, yCbCrOffset)
                   //
-                  const values = idct(coeff)
-                  // Decenter
-                  const dvalues = decenter(values)
-                  //
-                  yCbCr.set(dvalues, yCbCrOffset)
                   yCbCrOffset += 64
                 }
               }
@@ -295,7 +276,10 @@ export const createNextBit = (data: Uint8Array) => {
   }
 }
 
-export const createDecodeCoeff = (data: Uint8Array) => {
+export const createDecodeQCoeffs = (
+  data: Uint8Array,
+  outQCoeffs: Int16Array
+) => {
   const nextBit = createNextBit(data)
 
   /**
@@ -331,11 +315,8 @@ export const createDecodeCoeff = (data: Uint8Array) => {
     huffmanTreeDC: HuffmanTree,
     huffmanTreeAC: HuffmanTree
   ) => {
-    const coefficients: number[] = []
-    coefficients[0] = lastDc + nextDcDiff(huffmanTreeDC)
-    for (let i = 1; i < 64; i += 1) {
-      coefficients[i] = 0
-    }
+    outQCoeffs[0] = lastDc + nextDcDiff(huffmanTreeDC)
+    outQCoeffs.fill(0, 1)
     for (let i = 1; i < 64; ) {
       const value = nextHuffmanByte(huffmanTreeAC)
       // The low nibble contains the number of bits to be read, which determines
@@ -347,7 +328,7 @@ export const createDecodeCoeff = (data: Uint8Array) => {
       if (loBits !== 0) {
         const extraBits = nextBits(loBits)
         i += hiBits
-        coefficients[zigZag[i]] = extend(extraBits, loBits)
+        outQCoeffs[zigZag[i]] = extend(extraBits, loBits)
         i += 1
       } else {
         if (hiBits === 0xf) {
@@ -357,7 +338,6 @@ export const createDecodeCoeff = (data: Uint8Array) => {
         }
       }
     }
-    return coefficients
   }
 }
 

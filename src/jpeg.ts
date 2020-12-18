@@ -60,15 +60,14 @@ export type COM = {
   text: string
 }
 
-export type DQT_TABLE = {
-  id: 0 | 1 | 2 | 3
-  bytes: 1 | 2
-  values: number[]
-}
+export type QuantizationTable = Uint8Array | Uint16Array
 
 export type DQT = {
   type: typeof DQT
-  tables: DQT_TABLE[]
+  tables: {
+    id: 0 | 1 | 2 | 3
+    values: QuantizationTable
+  }[]
 }
 
 /**

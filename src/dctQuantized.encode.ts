@@ -1,4 +1,6 @@
-import { m1, m2, m3, m5, m6, m7, multSym } from './dctOptimized.common'
+import { QuantizationTable } from './jpeg'
+import { m1, m2, m3, m5, m6, m7, multSym } from './dctQuantized.common'
+
 const { SQRT2 } = Math
 
 /**
@@ -45,5 +47,32 @@ const multM = (A: number[], B: number[]) => {
 
 /**
  * Floating point optimized DCT.
+ *
+ * - Center by subtracting 128
+ * - Floating point optimized DCT.
+ * - Quantize coefficients
  */
-export const dct = multSym(multM)
+export const dctQuantized = (
+  qTable: QuantizationTable,
+  samples: Uint8ClampedArray,
+  outQCoeff: Int16Array,
+  outOffset: number
+) => {
+  outQCoeff.set(quantize(qTable, multSym(multM)(center(samples))), outOffset)
+}
+
+const center = (input: Uint8ClampedArray) => {
+  const output: number[] = []
+  for (let i = 0; i < 64; i += 1) {
+    output[i] = input[i] - 128
+  }
+  return output
+}
+
+const quantize = (quantumValues: QuantizationTable, coeff: number[]) => {
+  const outQCoeff: number[] = []
+  for (let i = 0; i < 64; i += 1) {
+    outQCoeff[i] = Math.round(coeff[i] / quantumValues[i])
+  }
+  return outQCoeff
+}

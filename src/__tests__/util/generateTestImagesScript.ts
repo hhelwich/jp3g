@@ -4,7 +4,7 @@ import { decodeJpeg } from '../../jpeg.decode'
 import { decodeFrame } from '../../frame.decode'
 import { distanceRgb } from './distanceRgb'
 import sharp from 'sharp'
-import { JFIFUnits, Jpeg } from '../../jpeg'
+import { JFIFUnits, Jpeg, QuantizationTable } from '../../jpeg'
 
 const imageDir = 'src/__tests__/images/'
 
@@ -220,14 +220,14 @@ const list2ts = (list: any, indent: string, width = 80): string =>
     .reverse()
     .join('\n')
 
-const dqt2ts = (value: number[], indent: string) => {
-  const maxLength = Math.max(...value.map(s => `${s}`.length))
+const dqt2ts = (values: QuantizationTable, indent: string) => {
+  const maxLength = Math.max(...Array.from(values.map(s => `${s}`.length)))
   let line = ''
   for (let row = 0; row < 8; row += 1) {
     line += indent + '  '
     const vals: string[] = []
     for (let col = 0; col < 8; col += 1) {
-      let nbr = `${value[col + row * 8]}`
+      let nbr = `${values[col + row * 8]}`
       while (nbr.length < maxLength) {
         nbr = ' ' + nbr
       }
@@ -235,7 +235,11 @@ const dqt2ts = (value: number[], indent: string) => {
     }
     line += vals.join(', ') + ',\n'
   }
-  return `\n${indent}// prettier-ignore\n${indent}values: [\n${line}${indent}]`
+  return (
+    `\n${indent}// prettier-ignore\n` +
+    `${indent}values: new ${values.constructor.name}([\n` +
+    `${line}${indent}])`
+  )
 }
 
 const jpegValue2ts = (value: any) =>

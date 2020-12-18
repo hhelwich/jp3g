@@ -1,12 +1,8 @@
-import * as fs from 'fs'
-import { promisify } from 'util'
-import { range } from '../util'
+import { range } from './util/testUtil'
 import { SOS, DHT } from '../jpeg'
-import { extend, createDecodeCoeff, createNextBit } from '../frame.decode'
+import { extend, createDecodeQCoeffs, createNextBit } from '../frame.decode'
 import jpegLotti8Struct from './images/lotti-8-4:4:4-90'
 import jpegLotti8Coeff from './images/lotti-8-4:4:4-90.qcoeff'
-
-const readFile = promisify(fs.readFile)
 
 describe('decode scan', () => {
   describe('extend', () => {
@@ -69,10 +65,14 @@ describe('decode scan', () => {
       const ht01 = (<DHT>jpegLotti8Struct[6]).tables[0].tree
       const ht10 = (<DHT>jpegLotti8Struct[7]).tables[0].tree
       const ht11 = (<DHT>jpegLotti8Struct[8]).tables[0].tree
-      const decodeCoeff = createDecodeCoeff(scan)
-      expect(decodeCoeff(0, ht00, ht01)).toEqual(jpegLotti8Coeff[0])
-      expect(decodeCoeff(0, ht10, ht11)).toEqual(jpegLotti8Coeff[1])
-      expect(decodeCoeff(0, ht10, ht11)).toEqual(jpegLotti8Coeff[2])
+      const qCoeffs = new Int16Array(64)
+      const decodeCoeff = createDecodeQCoeffs(scan, qCoeffs)
+      decodeCoeff(0, ht00, ht01)
+      expect(Array.from(qCoeffs)).toEqual(jpegLotti8Coeff[0])
+      decodeCoeff(0, ht10, ht11)
+      expect(Array.from(qCoeffs)).toEqual(jpegLotti8Coeff[1])
+      decodeCoeff(0, ht10, ht11)
+      expect(Array.from(qCoeffs)).toEqual(jpegLotti8Coeff[2])
     })
   })
 })

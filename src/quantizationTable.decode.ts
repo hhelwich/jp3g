@@ -1,12 +1,12 @@
-import { DQT, DQT_TABLE, zigZag } from './jpeg'
+import { DQT, QuantizationTable, zigZag } from './jpeg'
 import { getHiLow, getUint16 } from './common.decode'
 import { InvalidJpegError } from './InvalidJpegError'
 
-const getUint8or16 = (bytes: 1 | 2) =>
-  bytes === 1 ? (data: Uint8Array, offset: number) => data[offset] : getUint16
+const getUint8or16 = (size: 0 | 1) =>
+  size ? getUint16 : (data: Uint8Array, offset: number) => data[offset]
 
 export const decodeDQT = (data: Uint8Array): DQT => {
-  const tables: DQT_TABLE[] = []
+  const tables: DQT['tables'] = []
   let offset = 0
   const { length } = data
   do {
@@ -27,16 +27,12 @@ export const decodeDQT = (data: Uint8Array): DQT => {
     if (bytes * 64 > length - offset) {
       throw new InvalidJpegError('invalid segment length')
     }
-    const values: number[] = Array(64)
-    const getUint = getUint8or16(bytes)
+    const values: QuantizationTable = new (size ? Uint16Array : Uint8Array)(64)
+    const getUint = getUint8or16(size)
     for (let i = 0; i < 64; i += 1) {
       values[zigZag[i]] = getUint(data, i * bytes + offset)
     }
-    tables.push({
-      id,
-      bytes,
-      values,
-    })
+    tables.push({ id, values })
     offset += bytes * 64
   } while (offset !== length)
   return {

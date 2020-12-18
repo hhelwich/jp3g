@@ -1,8 +1,8 @@
-import { dct } from '../dctReference.encode'
-import { idct } from '../dctReference.decode'
+import { round } from '../testUtil'
+import { dctIdeal, invDctIdeal } from '../dctIdeal'
 
 // prettier-ignore
-export const s = [
+export const samples = [
   -76, -73, -67, -62, -58, -67, -64, -55,
   -65, -69, -73, -38, -19, -43, -59, -56,
   -66, -69, -60, -15,  16, -24, -62, -55,
@@ -14,7 +14,7 @@ export const s = [
 ]
 
 // prettier-ignore
-export const S = [
+export const coeffs = [
   -415.37, -30.19, -61.2 ,  27.24,  56.12, -20.1 , -2.39,  0.46,
      4.47, -21.86, -60.76,  10.25,  13.15,  -7.09, -8.54,  4.88,
    -46.83,   7.37,  77.13, -24.56, -28.91,   9.93,  5.42, -5.65,
@@ -25,16 +25,18 @@ export const S = [
     -0.17,   0.14,  -1.07,  -4.19,  -1.17,  -0.1 ,  0.5 ,  1.68,
 ]
 
-describe('DCT reference', () => {
-  it('DCT returns the expected result', () => {
-    let GActual = dct(s)
-    GActual = dct(s).map(x => +x.toFixed(2))
-    expect(GActual).toEqual(S)
+describe('ideal DCT', () => {
+  it('forward DCT returns the expected result', () => {
+    expect(dctIdeal(samples).map(round(2))).toEqual(coeffs)
   })
-  it('inverts naive DCT', () => {
+  it('forward DCT can be inverted', () => {
     const precision = 12
-    const G = dct(s)
-    const gActual = idct(G).map(x => +x.toFixed(precision))
-    expect(gActual).toEqual(s)
+    expect(invDctIdeal(dctIdeal(samples)).map(round(precision))).toEqual(
+      samples
+    )
+  })
+  it('inverse DCT can be inverted', () => {
+    const precision = 12
+    expect(dctIdeal(invDctIdeal(coeffs)).map(round(precision))).toEqual(coeffs)
   })
 })

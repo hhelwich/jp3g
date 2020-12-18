@@ -1,4 +1,4 @@
-import { range } from './util'
+import { range } from './testUtil'
 
 const { cos, sqrt, PI } = Math
 
@@ -52,4 +52,11 @@ export const M = (n: number) => {
 /**
  * Naive matrix form of the DCT: M * V * M^T
  */
-export const dct = (n: number) => (V: number[]) => mult(M(n), V, transp(M(n)))
+export const dctMatrix = (n: number) => (V: number[]) =>
+  mult(M(n), V, transp(M(n)))
+
+/**
+ * Naive matrix form of the inverse DCT: M^T * T * M
+ */
+export const invDctMatrix = (n: number) => (T: number[]) =>
+  mult(transp(M(n)), mult(T, M(n)))

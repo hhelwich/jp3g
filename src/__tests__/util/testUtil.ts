@@ -1,6 +1,13 @@
 import fs from 'fs'
 import sharp from 'sharp'
-import { range } from '../../util'
+
+export const range = (length: number) => {
+  const result: number[] = []
+  for (let i = 0; i < length; i += 1) {
+    result.push(i)
+  }
+  return result
+}
 
 export const readImageFile = (fileName: string) =>
   new Uint8Array(fs.readFileSync(`src/__tests__/images/${fileName}`))
@@ -34,3 +41,31 @@ export const readImageDataFromPng = async (
  */
 export const scaledRange = (max: number) => (count: number) =>
   range(count).map(i => Math.round((max * i) / (count - 1)))
+
+export const round = (precision: number) => (x: number) => +x.toFixed(precision)
+
+/**
+ * Root mean squared error
+ */
+export const rmse = (xs: number[], ys: number[]) => {
+  const { length } = xs
+  if (ys.length !== length) {
+    throw Error('Invalid vector sizes')
+  }
+  return Math.sqrt(xs.reduce((s, x, i) => s + (x - ys[i]) ** 2, 0) / length)
+}
+
+/**
+ * Returns random 8x8 matrix with values in the range 0...255.
+ */
+export const randomSamples = () =>
+  [...Array(64)].map(() => Math.floor(Math.random() * 256))
+
+export const randomQTable = (bytes: 1 | 2 = 1) =>
+  [...Array(64)].map(() => {
+    let q: number
+    do {
+      q = Math.floor(Math.random() * 2 ** (8 * bytes))
+    } while (q === 0)
+    return q
+  })
