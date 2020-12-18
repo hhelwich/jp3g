@@ -1,13 +1,13 @@
 import { QuantizationTable } from './jpeg'
-import { m1, m2, m3, m5, m6, m7, multSym } from './dctQuantized.common'
+import { m1, m2, m3, m5, m6, m7 } from './dctQuantized.common'
 
 const { SQRT2 } = Math
 
 /**
  * Calculate B := (A * M/sqrt(8))^t
  */
-const multM = (A: number[], B: number[]) => {
-  // TODO Use scaled integers in IDCT to speed up decoding?
+const multM = (A: Int16Array | Float64Array, B: Float64Array) => {
+  // TODO Use scaled integers to speed up decoding?
   for (let i = 0, j = 0; i < 8; i += 1) {
     const a0 = A[j++]
     const a4 = A[j++]
@@ -50,6 +50,10 @@ const multM = (A: number[], B: number[]) => {
   }
 }
 
+const coeffs = new Int16Array(64)
+const a = new Float64Array(64)
+const b = new Float64Array(64)
+
 /**
  * - Dequantize coefficients
  * - Floating point optimized IDCT.
@@ -61,26 +65,12 @@ export const invDctQuantized = (
   outSamples: Uint8ClampedArray,
   outOffset: number
 ) => {
-  // TODO optimize
-  const coeff: number[] = []
-  dequantize(qTable, qCoeffs, coeff)
-  outSamples.set(decenter(multSym(multM)(coeff)), outOffset)
-}
-
-const dequantize = (
-  quantumValues: QuantizationTable,
-  quantizedCoeff: Int16Array,
-  outCoeff: number[]
-) => {
   for (let i = 0; i < 64; i += 1) {
-    outCoeff[i] = quantizedCoeff[i] * quantumValues[i]
+    coeffs[i] = qCoeffs[i] * qTable[i]
   }
-}
-
-const decenter = (input: number[]) => {
-  const output: number[] = []
+  multM(coeffs, a)
+  multM(a, b)
   for (let i = 0; i < 64; i += 1) {
-    output[i] = input[i] + 128
+    outSamples[outOffset++] = b[i] / 8 + 128
   }
-  return output
 }
