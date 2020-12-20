@@ -1,7 +1,7 @@
 import { DHT, DQT, EOI, HuffmanTree, Jpeg, SOF, SOS, zigZag } from './jpeg'
-import { invDctQuantized } from './dctQuantized.decode'
+import { invDctQuantizedScaled } from './dctQuantizedScaled.decode'
 
-const { min, max, ceil } = Math
+const { min, max, ceil, round } = Math
 
 export const prepareScanDecode = (sof: SOF) => {
   const maxH = Math.max(...sof.components.map(component => component.h))
@@ -40,13 +40,15 @@ const createImageData = (width: number, height: number): ImageData => ({
   height,
 })
 
-export const decodeFrame = (jpeg: Jpeg): ImageData => {
+export const decodeFrame = (jpeg: Jpeg, downScale: 1 | 8 = 1): ImageData => {
   const huffmanTables: [HuffmanTree[], HuffmanTree[]] = [[], []]
   const qTables: DQT['tables'] = []
   let frame:
     | {
         components: SOF['components']
         imageData: ImageData
+        width: number
+        height: number
       }
     | undefined
   segmentLoop: for (const segment of jpeg) {
@@ -76,7 +78,12 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
         }
         frame = {
           components: frameComponents,
-          imageData: createImageData(segment.width, segment.height),
+          width: segment.width,
+          height: segment.height,
+          imageData: createImageData(
+            round(segment.width / downScale),
+            round(segment.height / downScale)
+          ),
         }
         break
       }
@@ -86,7 +93,9 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
         }
         const {
           components: frameComponents,
-          imageData: { width, height, data },
+          width,
+          height,
+          imageData: { width: targetWidth, data },
         } = frame
         const { components } = segment
         const interleaved = components.length > 1
@@ -122,13 +131,22 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
         const decodeQCoeffs = createDecodeQCoeffs(segment.data, qCoeffs)
         const componentCount = components.length
         const lastDcs = new Int16Array(componentCount)
+        /*
+         * TODO: When more scalings are implemented, different sizes should be
+         * possible per component to get better resolution when subsampled.
+         */
+        const decDataUnitSize = (8 / downScale) ** 2
         // Create buffer to hold the data units for each MCU row
-        const yCbCr = new Uint8ClampedArray(mcuColumns * mcuDataUnitCount * 64)
+        const yCbCr = new Uint8ClampedArray(
+          mcuColumns * mcuDataUnitCount * decDataUnitSize
+        )
 
+        const invDctQuantized = invDctQuantizedScaled(downScale)
         const yCbCr2Rgb = nextYCbCr2Rgb(
           yCbCr,
           createMapIndices(
-            width,
+            targetWidth,
+            downScale,
             mcuColumns,
             mcuHeight,
             components.map(({ id }) => frameComponents[id]),
@@ -156,7 +174,7 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
                   //
                   invDctQuantized(qTable, qCoeffs, yCbCr, yCbCrOffset)
                   //
-                  yCbCrOffset += 64
+                  yCbCrOffset += decDataUnitSize
                 }
               }
             }
@@ -176,16 +194,18 @@ export const decodeFrame = (jpeg: Jpeg): ImageData => {
 }
 
 const createMapIndices = (
-  width: number,
+  targetWidth: number,
+  downScale: number,
   mcuColumns: number,
   mcuHeight: number,
   componentInfo: { h: number; v: number }[],
   maxH: number,
   maxV: number
 ) => {
-  const mapIndices = new Uint32Array(3 * width * mcuHeight)
-  let y = 0
+  const mapIndices = new Uint32Array(3 * targetWidth * (mcuHeight / downScale))
+  let n = 0 // Index in the source array holding data units of one MCU row
   const componentCount = componentInfo.length
+  const dataUnitSize = 8 / downScale // Width and height of each data unit
   // Iterate MCU columns
   for (let mcuColumn = 0; mcuColumn < mcuColumns; mcuColumn += 1) {
     // Iterate components in MCU
@@ -198,21 +218,22 @@ const createMapIndices = (
         // Iterate component data unit columns in MCU
         for (let j = 0; j < h; j += 1) {
           // Iterate rows in data unit
-          for (let zy = 0; zy < 8; zy += 1) {
+          for (let zy = 0; zy < dataUnitSize; zy += 1) {
             // iterate columns in data unit
-            for (let zx = 0; zx < 8; zx += 1) {
+            for (let zx = 0; zx < dataUnitSize; zx += 1) {
               // Vertical duplication
               for (let g = 0; g < vv; g += 1) {
                 // Horizontal duplication
                 for (let f = 0; f < hh; f += 1) {
-                  const x = ((mcuColumn * h + j) * 8 + zx) * hh + f
-                  const _y = (i * 8 + zy) * vv + g
-                  if (x < width) {
-                    mapIndices[(_y * width + x) * 3 + k] = y
+                  // x, y: Target image pixel position
+                  const x = ((mcuColumn * h + j) * dataUnitSize + zx) * hh + f
+                  const y = (i * dataUnitSize + zy) * vv + g
+                  if (x < targetWidth) {
+                    mapIndices[(x + y * targetWidth) * componentCount + k] = n
                   }
                 }
               }
-              y += 1
+              n += 1
             }
           }
         }

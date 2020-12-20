@@ -42,6 +42,22 @@ describe('images', () => {
       )
     ).toBe(0)
   })
+  it('down scale 8', async () => {
+    const jpegData = readImageFile('64x64.jpg')
+    const jpeg = decodeJpeg(jpegData)
+    const imageData = decodeFrame(jpeg, 8)
+    expect(
+      Buffer.from(imageData.data).compare(
+        Buffer.from(
+          await (
+            await readImageDataFromPng(
+              'src/__tests__/images/64x64-scale8-expected.png'
+            )
+          ).data
+        )
+      )
+    ).toBe(0)
+  })
   it('16x8.jpg decodes to expected image', async () => {
     const jpegData = readImageFile('16x8.jpg')
     const jpeg = decodeJpeg(jpegData)

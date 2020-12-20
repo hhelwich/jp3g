@@ -8,6 +8,8 @@ import { JFIFUnits, Jpeg, QuantizationTable } from '../../jpeg'
 
 const imageDir = 'src/__tests__/images/'
 
+const { round } = Math
+
 /**
  * Create test image data which has full red, green, blue (when square), black
  * and white pixels and fades between them.
@@ -53,7 +55,11 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     .removeAlpha()
     .toFile(fileName)
 
-type FileInfo = { name: string; diff: { max: number; mean: number } }
+type FileInfo = {
+  name: string
+  downScale?: 1 | 8
+  diff: { max: number; mean: number }
+}
 ;(async () => {
   try {
     // Generate some images which are used as source to create JPEG test images
@@ -78,6 +84,7 @@ type FileInfo = { name: string; diff: { max: number; mean: number } }
       [32, 24],
       [32, 32],
       [35, 35],
+      [64, 64],
       */
     ] as [number, number][]) {
       await writeImageData(
@@ -130,35 +137,43 @@ type FileInfo = { name: string; diff: { max: number; mean: number } }
       { name: 'subsampling-24x16-311231', diff: { max: 21.7, mean: 2.26 } },
       { name: 'subsampling-24x24-131331', diff: { max: 0.49, mean: 0.02 } },
       { name: 'subsampling-24x32-311114', diff: { max: 1.12, mean: 0.04 } },
+      { name: '64x64', downScale: 8, diff: { max: 9.03, mean: 1.33 } },
     ] as FileInfo[]) {
       // Decode with libjpeg for reference
       const fileName = `${imageDir}${jpegFile.name}.jpg`
-      const referenceImage = await sharp(fileName)
+      const downScale = jpegFile.downScale ?? 1
+      let sharpImage = sharp(fileName)
+      if (downScale > 1) {
+        const metaData = await sharpImage.metadata()
+        // TODO Check that rounding is the same as in libjpeg downscaling
+        sharpImage = sharpImage.resize({
+          width: round(metaData.width / downScale),
+        })
+      }
+      const referenceImage = await sharpImage
         .raw()
         .toBuffer({ resolveWithObject: true })
       // Decode image with decoder under test
       const jpeg = decodeJpeg(new Uint8Array(readFileSync(fileName)))
-      const image = decodeFrame(jpeg)
+      const image = decodeFrame(jpeg, downScale)
       // Verify metadata
-      if (
-        image.height !== referenceImage.info.height ||
-        image.width !== referenceImage.info.width
-      ) {
-        throw Error('Unexpected image dimension')
+      const { width, height } = referenceImage.info
+      if (image.height !== height || image.width !== width) {
+        throw Error(`Unexpected image dimension: ${jpegFile.name}`)
       }
       // Verify pixel data is very similar to libjpeg decoder result
       let maxDistance = 0
       let meanDistance = 0
-      const count = image.width * image.height
-      for (let x = 0; x < image.width; x += 1) {
-        for (let y = 0; y < image.height; y += 1) {
-          const i = (x + y * image.width) * 4
+      const count = width * height
+      for (let x = 0; x < width; x += 1) {
+        for (let y = 0; y < height; y += 1) {
+          const i = (x + y * width) * 4
           const alpha = image.data[i + 3]
           if (alpha !== 255) {
             throw Error('Unexpected alpha')
           }
           const rgb = [image.data[i], image.data[i + 1], image.data[i + 2]]
-          const j = (x + y * image.width) * 3
+          const j = (x + y * width) * 3
           const rgbReference = [
             referenceImage.data[j],
             referenceImage.data[j + 1],
@@ -173,6 +188,7 @@ type FileInfo = { name: string; diff: { max: number; mean: number } }
       meanDistance = ceil2(meanDistance)
       diffs.push({
         name: jpegFile.name,
+        downScale: jpegFile.downScale,
         diff: { max: maxDistance, mean: meanDistance },
       })
       if (
@@ -188,7 +204,12 @@ type FileInfo = { name: string; diff: { max: number; mean: number } }
         }
       }
       // Write expected decoder result which is used in decoder tests
-      await writeImageData(image, `${imageDir}${jpegFile.name}-expected.png`)
+      await writeImageData(
+        image,
+        `${imageDir}${jpegFile.name}-${
+          downScale > 1 ? `scale${downScale}-` : ''
+        }expected.png`
+      )
     }
     if (differentDiff) {
       console.log(`Changed pixel difference ${JSON.stringify(diffs)}`)
