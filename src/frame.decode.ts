@@ -40,7 +40,7 @@ const createImageData = (width: number, height: number): ImageData => ({
   height,
 })
 
-export const decodeFrame = (jpeg: Jpeg, downScale: 1 | 8 = 1): ImageData => {
+export const decodeFrame = (jpeg: Jpeg, downScale = 1): ImageData => {
   const huffmanTables: [HuffmanTree[], HuffmanTree[]] = [[], []]
   const qTables: DQT['tables'] = []
   let frame:
@@ -337,7 +337,10 @@ export const createDecodeQCoeffs = (
     huffmanTreeAC: HuffmanTree
   ) => {
     outQCoeffs[0] = lastDc + nextDcDiff(huffmanTreeDC)
-    outQCoeffs.fill(0, 1)
+    // Int16Array#fill is ES6 => use loop
+    for (let i = 1; i < 64; i += 1) {
+      outQCoeffs[i] = 0
+    }
     for (let i = 1; i < 64; ) {
       const value = nextHuffmanByte(huffmanTreeAC)
       // The low nibble contains the number of bits to be read, which determines

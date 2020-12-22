@@ -1,13 +1,13 @@
 import { version as _version } from '../package.json'
 import { Jpeg, SOS, APP } from './jpeg'
 import { workerFunction } from './workers'
-export { setWorkers } from './workers'
+import { setWorkers } from './workers'
 import { decodeJpeg } from './jpeg.decode'
-import { identity } from './util'
+import { identity, find, createImageData } from './util'
 import { decodeFrame } from './frame.decode'
 
 // Create variable for correct type in d.ts file (will be removed my minifier)
-export const version = _version
+const version = _version
 
 const getBuffer = (dataContainer: ImageData | SOS | APP): ArrayBufferLike[] => [
   dataContainer.data.buffer,
@@ -18,7 +18,7 @@ const getJpegBuffer = (jpeg: Jpeg): ArrayBufferLike[] =>
   // This is sufficient because all data segment (APP, SOS) views reference
   // the same buffer. There is always a SOS segment.
   getBuffer(
-    jpeg.find(segment => segment.type === APP || segment.type === SOS) as
+    find(jpeg, segment => segment.type === APP || segment.type === SOS) as
       | APP
       | SOS
   )
@@ -26,15 +26,30 @@ const getJpegBuffer = (jpeg: Jpeg): ArrayBufferLike[] =>
 const _decode = async (jpegData: ArrayBufferLike): Promise<Jpeg> =>
   decodeJpeg(new Uint8Array(jpegData))
 
-const _decodeImage = async (jpeg: Jpeg): Promise<ImageData> => {
-  const { data, width, height } = decodeFrame(jpeg)
-  return new ImageData(data, width, height)
+type DecodeOptions = {
+  downScale?: number
 }
 
-export const decode = workerFunction(_decode, identity, getJpegBuffer)
+const _decodeImage = async (
+  jpeg: Jpeg,
+  options?: DecodeOptions
+): Promise<ImageData> => {
+  const { data, width, height } = decodeFrame(jpeg, options?.downScale)
+  return createImageData(data, width, height)
+}
 
-export const decodeImage = workerFunction(
+const decode = workerFunction(_decode, identity, getJpegBuffer)
+
+const decodeImage = workerFunction(
   _decodeImage,
   ([jpeg]) => getJpegBuffer(jpeg),
   getBuffer
 )
+
+const _jp3g = { setWorkers, version, decode, decodeImage }
+
+export default _jp3g
+
+declare global {
+  const jp3g: typeof _jp3g
+}

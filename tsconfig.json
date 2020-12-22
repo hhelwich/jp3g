@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es5",
     "module": "ES6",
-    "lib": ["ES2019.Array", "WebWorker", "DOM"],
+    "lib": ["WebWorker", "DOM"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

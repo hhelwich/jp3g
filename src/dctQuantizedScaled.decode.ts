@@ -15,5 +15,5 @@ const invDctQuantizedDownScale8 = (
  * - Floating point optimized IDCT.
  * - Decenter by adding 128
  */
-export const invDctQuantizedScaled = (downScale: 1 | 8) =>
+export const invDctQuantizedScaled = (downScale: number) =>
   downScale === 8 ? invDctQuantizedDownScale8 : invDctQuantized
