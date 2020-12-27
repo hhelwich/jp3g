@@ -34,19 +34,32 @@ export const prepareScanDecode = (sof: SOF) => {
   }
 }
 
-const createImageData = (width: number, height: number): ImageData => ({
-  data: new Uint8ClampedArray(width * height * 4),
+const createImageData = (width: number, height: number): ImageDataArgs => [
+  new Uint8ClampedArray(width * height * 4),
   width,
   height,
-})
+]
 
-export const decodeFrame = (jpeg: Jpeg, downScale = 1): ImageData => {
+/**
+ * Some old browsers cannot create an `ImageData` in a worker, so we transfer
+ * the parameters of the `ImageData` constructor.
+ */
+type ImageDataArgs = [data: Uint8ClampedArray, width: number, height: number]
+
+export type DecodeOptions = {
+  downScale?: number
+}
+
+export const decodeFrame = (
+  jpeg: Jpeg,
+  { downScale = 1 }: DecodeOptions = {}
+): ImageDataArgs => {
   const huffmanTables: [HuffmanTree[], HuffmanTree[]] = [[], []]
   const qTables: DQT['tables'] = []
   let frame:
     | {
         components: SOF['components']
-        imageData: ImageData
+        imageData: ImageDataArgs
         width: number
         height: number
       }
@@ -95,7 +108,7 @@ export const decodeFrame = (jpeg: Jpeg, downScale = 1): ImageData => {
           components: frameComponents,
           width,
           height,
-          imageData: { width: targetWidth, data },
+          imageData: [data, targetWidth],
         } = frame
         const { components } = segment
         const interleaved = components.length > 1

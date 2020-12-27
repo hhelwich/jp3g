@@ -1,4 +1,5 @@
 import { environment, Environment } from './environment'
+import { Append, Callback, array, isFunction } from './util'
 
 /**
  * This module contains code to call functions both directly and in a worker.
@@ -7,50 +8,33 @@ import { environment, Environment } from './environment'
  */
 
 /**
- * The callbacks from an async function to end it successfully or with an error
- * if necessary.
+ * Type of functions that are run in a worker.
  */
-type CallTermination<T> = [
-  resolve: (result: T | PromiseLike<T>) => void,
-  reject: (error: Error) => void
-]
+type WorkerFunction = (...args: any[]) => any
 
 /**
- * Asynchronous function that can be called both directly and in a worker.
- */
-type WorkerFunction = (...args: any[]) => PromiseLike<any>
-
-/**
- * Message that is sent to the worker in order to call a function.
+ * Type of a message that is sent to the worker in order to call a function.
  */
 type MessageToWorker = [callId: number, fnId: number, args: unknown[]]
 
 /**
- * Message that is sent back to the main thread by the worker after a function
- * has been completed.
+ * Type of a message that is sent back to the main thread by the worker after a
+ * function has been completed in the worker.
  */
-type MessageFromWorker<T> = [callId: number, result?: T, errorMessage?: string]
+type MessageFromWorker<T> = [callId: number, errorMessage?: string, result?: T]
 
 /**
- * A worker an its state.
+ * A worker and its state.
  */
 type WorkerWithState = [worker: Worker, busy: boolean]
 
 /**
- * Extract the type wrapped in a promise type.
- */
-type UnwrapPromise<T> = T extends PromiseLike<infer U> ? U : T
-
-/**
- * All available functions that can be called both directly and in a worker.
- * In case a function is called in a worker, there are functions that extract
- * the transferables used in the inputs and outputs. This is required so that
- * the buffers can be transferred between a worker and the main thread by
- * reference instead by value.
+ * Worker functions and its helper functions.
  */
 const workerFunctions: [
+  preProcess: (args: any, callback: Callback<any[]>) => void,
+  inputTransfer: (args: any) => ArrayBuffer[],
   workerFunction: WorkerFunction,
-  inputTransfer: (args: any[]) => ArrayBuffer[],
   outputTransfer: (result: any) => ArrayBuffer[]
 ][] = []
 
@@ -60,38 +44,37 @@ const workerFunctions: [
 let callCounter = 0
 
 /**
- * For all currently running calls, it maps the call ID to the termination
- * callbacks which are used to end the calls.
+ * Maps call ID for all currently running calls to the termination callback
+ * which is used to end the calls.
  */
-const activeCalls = new Map<number, CallTermination<unknown>>()
+const activeCalls = new Map<number, Callback<unknown>>()
 
 /**
  * Calls are queued here for later processing.
  */
-const callQueue: [
-  message: MessageToWorker,
-  callTermination: CallTermination<unknown>
-][] = []
+const callQueue: [message: MessageToWorker, callback: Callback<unknown>][] = []
 
 /**
- * Creates a worker handler that applies a function call on receiving a message.
+ * Creates a worker handler that runs a function in a worker.
  */
 const onMessageToWorker = (
   postMessageFromWorker: (
     message: MessageFromWorker<unknown>,
     transfer?: ArrayBuffer[]
   ) => void
-) => async ({ data: [callId, fnId, args] }: MessageEvent<MessageToWorker>) => {
+) => ({ data: [callId, fnId, args] }: MessageEvent<MessageToWorker>) => {
+  const [, , fn, outputTransfer] = workerFunctions[fnId]
+  let result: any
+  let transfer: ArrayBuffer[] | undefined
+  let errorMessage: string | undefined
   try {
-    const [fn, , outputTransfer] = workerFunctions[fnId]
-    const result = await fn(...args)
-    const message: MessageFromWorker<unknown> = [callId, result]
-    const transfer = outputTransfer(result)
-    postMessageFromWorker(message, transfer)
-  } catch (e) {
-    const message: MessageFromWorker<void> = [callId, , e.message]
-    postMessageFromWorker(message)
+    result = fn(...args)
+    transfer = outputTransfer(result)
+  } catch (error) {
+    errorMessage = error.message
   }
+  const message: MessageFromWorker<unknown> = [callId, errorMessage, result]
+  postMessageFromWorker(message, transfer)
 }
 
 /**
@@ -101,19 +84,16 @@ const onMessageToWorker = (
 const initWorker = (worker: Worker): WorkerWithState => {
   const workerWithState: WorkerWithState = [worker, false]
   worker.onmessage = ({
-    data: [callId, result, errorMessage],
+    data: [callId, errorMessage, result],
   }: MessageEvent<MessageFromWorker<unknown>>) => {
     // Mark worker as idle
     workerWithState[1] = false
     // Terminate function call
-    const [resolve, reject] = activeCalls.get(callId) as CallTermination<any>
+    const callback = activeCalls.get(callId) as Callback<any>
     activeCalls.delete(callId)
-    if (errorMessage) {
-      // TODO Preserve error type or remove special error types
-      reject(Error(errorMessage))
-    } else {
-      resolve(result)
-    }
+    // TODO Preserve error type or remove special error types
+    const error = errorMessage != null ? Error(errorMessage) : undefined
+    callback(error, result)
   }
   return workerWithState
 }
@@ -121,7 +101,7 @@ const initWorker = (worker: Worker): WorkerWithState => {
 /**
  * Returns a fake worker that works in the same thread.
  */
-export const fakeWorker = (): Worker => {
+const fakeWorker = (): Worker => {
   let worker: Worker
   const fakeWorkerOnMessage = onMessageToWorker(message => {
     const event = { data: message } as MessageEvent<MessageFromWorker<any>>
@@ -130,7 +110,9 @@ export const fakeWorker = (): Worker => {
   worker = {
     postMessage: (message: MessageToWorker) => {
       const event = { data: message } as MessageEvent<MessageToWorker>
-      fakeWorkerOnMessage(event)
+      setTimeout(() => {
+        fakeWorkerOnMessage(event)
+      })
     },
   } as Worker
   return worker
@@ -154,13 +136,23 @@ let workersWithState: WorkerWithState[] = mainWorkerWithState
 const notifyStartCall = (
   worker: Worker,
   message: MessageToWorker,
-  callTermination: CallTermination<unknown>
+  callback: Callback<unknown>
 ) => {
   const [callId, fnId, args] = message
-  activeCalls.set(callId, callTermination)
-  const [, inputTransfer] = workerFunctions[fnId]
-  const transfer = inputTransfer(args)
-  worker.postMessage(message, transfer)
+  activeCalls.set(callId, callback)
+  const [preProcess, inputTransfer] = workerFunctions[fnId]
+  preProcess(args, (error, args2) => {
+    if (error) {
+      ;(callback as any)(error)
+    } else {
+      try {
+        const transfer = inputTransfer(args2)
+        worker.postMessage([callId, fnId, args2], transfer)
+      } catch (error) {
+        ;(callback as any)(error)
+      }
+    }
+  })
 }
 
 /**
@@ -184,50 +176,93 @@ const tryDistributeCalls = () => {
 }
 
 /**
- * Set zero to any number of workers which should be used to process functions.
+ * Returns an asynchronous function, that runs a synchronous function in a
+ * worker pool. Additionally to the function, that is executed in the worker
+ * helper functions are used for each function call. The arguments of the parent
+ * function can be mapped asynchronously to the arguments of the worker function
+ * using the `preProcess` function. This is useful to perform I/O operations
+ * before. The transfer functions are used to extract `Transferable`s so that
+ * they can be passed to the worker and back by reference.
+ * The `postProcess` function can be used to perform operations on the result
+ * e.g. to create an instance which is not possible to create in a worker
+ * environment.
  */
-export const setWorkers = (...workers: Worker[]) => {
-  if (workers.length > 0) {
-    workersWithState = workers.map(initWorker)
-  } else {
-    workersWithState = mainWorkerWithState
-  }
-  tryDistributeCalls()
-}
-
-/**
- * Proxy a function so that it can also be processed in a worker.
- * To pass ArrayBuffers by reference instead of by value, functions must be
- * specified which extract the ArrayBuffers from the function's inputs and
- * outputs.
- */
-export const workerFunction = <F extends WorkerFunction>(
-  fn: F,
-  inputTransfer: (args: Parameters<F>) => ArrayBuffer[],
-  outputTransfer: (result: UnwrapPromise<ReturnType<F>>) => ArrayBuffer[]
-): F => {
+export const workerFunction = <A extends any[], B extends any[], C, D>(
+  preProcess: (args: A, callback: Callback<B>) => void,
+  inputTransfer: (args: B) => ArrayBuffer[],
+  fn: (...args: B) => C,
+  outputTransfer: (result: C) => ArrayBuffer[],
+  postProcess: (arg: C) => D
+): {
+  (...args: A): Promise<D>
+  (...args: Append<A, Callback<D>>): void
+} => {
   const fnId = workerFunctions.length
-  workerFunctions.push([
-    fn,
-    inputTransfer as (args: any[]) => ArrayBuffer[],
-    outputTransfer,
-  ])
-  return ((...args) => {
+  workerFunctions.push([preProcess, inputTransfer, fn, outputTransfer])
+  return ((...args: unknown[]) => {
     // Queue call for processing
-    const result: PromiseLike<any> = new Promise((resolve, reject) => {
-      const callTermination: CallTermination<unknown> = [resolve, reject]
-      const message: MessageToWorker = [callCounter++, fnId, args]
-      callQueue.push([message, callTermination])
-      tryDistributeCalls()
-    })
-    result.then(tryDistributeCalls, tryDistributeCalls)
+    const lastIndex = args.length - 1
+    const lastArgument = args[lastIndex]
+    let callback: Callback<D>
+    let result: Promise<D> | undefined
+    if (isFunction(lastArgument)) {
+      callback = lastArgument as Callback<D>
+      args = array(args, 0, lastIndex)
+    } else {
+      result = new Promise((resolve, reject) => {
+        callback = (error, result) => {
+          if (error) {
+            reject(error)
+          } else {
+            resolve(result)
+          }
+        }
+      })
+    }
+    const message: MessageToWorker = [callCounter++, fnId, args]
+    callQueue.push([
+      message,
+      (error, result) => {
+        callback(error, postProcess(result as C))
+        tryDistributeCalls()
+      },
+    ])
+    tryDistributeCalls()
     return result
-  }) as F
+  }) as any
 }
 
-/**
- * Register function call handler in the worker.
- */
-if (environment === Environment.BrowserWorker) {
+export let setWorkerCount: (workeCount: number) => void
+
+if (environment === Environment.BrowserMain) {
+  /**
+   * The URL of this script. It gets a little hacky for browsers not supporting
+   * `document.currentScript`.
+   */
+  const scriptSrc = (
+    (document.currentScript as HTMLScriptElement | undefined) ||
+    (() => {
+      const scripts = document.getElementsByTagName('script')
+      return scripts[scripts.length - 1]
+    })()
+  ).src
+
+  /**
+   * Set zero to any number of workers which should be used to process
+   * functions.
+   */
+  setWorkerCount = (workerCount: number) => {
+    if (window.Worker && workerCount > 0) {
+      workersWithState = []
+      for (let i = 0; i < workerCount; i += 1) {
+        workersWithState.push(initWorker(new Worker(scriptSrc)))
+      }
+    } else {
+      workersWithState = mainWorkerWithState
+    }
+    tryDistributeCalls()
+  }
+} else {
+  // Register function call handler in the worker.
   onmessage = onMessageToWorker(postMessage as any)
 }

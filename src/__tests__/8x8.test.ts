@@ -18,7 +18,7 @@ describe('images', () => {
     expect(jpeg).toEqual(jpeg8x8Expected)
     const imageData = decodeFrame(jpeg)
     expect(
-      Buffer.from(imageData.data).compare(
+      Buffer.from(imageData[0]).compare(
         Buffer.from(
           await (
             await readImageDataFromPng('src/__tests__/images/8x8-expected.png')
@@ -33,7 +33,7 @@ describe('images', () => {
     expect(jpeg).toEqual(jpeg8x16Expected)
     const imageData = decodeFrame(jpeg)
     expect(
-      Buffer.from(imageData.data).compare(
+      Buffer.from(imageData[0]).compare(
         Buffer.from(
           await (
             await readImageDataFromPng('src/__tests__/images/8x16-expected.png')
@@ -45,9 +45,9 @@ describe('images', () => {
   it('down scale 8', async () => {
     const jpegData = readImageFile('64x64.jpg')
     const jpeg = decodeJpeg(jpegData)
-    const imageData = decodeFrame(jpeg, 8)
+    const imageData = decodeFrame(jpeg, { downScale: 8 })
     expect(
-      Buffer.from(imageData.data).compare(
+      Buffer.from(imageData[0]).compare(
         Buffer.from(
           await (
             await readImageDataFromPng(
@@ -64,7 +64,7 @@ describe('images', () => {
     expect(jpeg).toEqual(jpeg16x8Expected)
     const imageData = decodeFrame(jpeg)
     expect(
-      Buffer.from(imageData.data).compare(
+      Buffer.from(imageData[0]).compare(
         Buffer.from(
           await (
             await readImageDataFromPng('src/__tests__/images/16x8-expected.png')
@@ -84,7 +84,7 @@ describe('images', () => {
     expect(jpeg).toEqual(jpeg16x16Expected)
     const imageData = decodeFrame(jpeg)
     expect(
-      Buffer.from(imageData.data).compare(
+      Buffer.from(imageData[0]).compare(
         Buffer.from(
           await (
             await readImageDataFromPng(
@@ -108,7 +108,7 @@ describe('images', () => {
     const imageData = decodeFrame(jpeg)
 
     expect(
-      Buffer.from(imageData.data).compare(
+      Buffer.from(imageData[0]).compare(
         Buffer.from(
           await (
             await readImageDataFromPng(
@@ -141,7 +141,7 @@ describe('images', () => {
     */
 
     expect(
-      Buffer.from(imageData.data).compare(
+      Buffer.from(imageData[0]).compare(
         Buffer.from(
           await (
             await readImageDataFromPng(
@@ -195,7 +195,7 @@ describe('images', () => {
       }
       */
       expect(
-        Buffer.from(imageData.data).compare(
+        Buffer.from(imageData[0]).compare(
           Buffer.from(
             await (
               await readImageDataFromPng(

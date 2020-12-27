@@ -1,9 +1,61 @@
+export type Head<T extends any[]> = T extends [...infer H, any] ? H : never
+export type Last<T extends any[]> = T extends [...infer H, infer L] ? L : never
+export type Prepend<I, T extends any[]> = [I, ...T]
+export type Append<T extends any[], I> = [...T, I]
+
+/**
+ * Extract the type wrapped in a promise type.
+ */
+export type UnwrapCallback<T> = T extends Callback<infer U> ? U : never
+
+/**
+ * Callback type if used without Promises.
+ */
+export type Callback<T> = (error: Error | undefined, result: T) => void
+
 const { slice } = Array.prototype
+
+export const isFunction = (f: unknown): f is Function => typeof f === 'function'
+
+export const isBlob = (b: unknown): b is Blob => b instanceof Blob
 
 /**
  * Just the identity function.
  */
 export const identity = <T>(a: T): T => a
+
+/**
+ * Compose two asynchronous functions.
+ */
+export const composeAsync = <A, B, C>(
+  fn1: (a: A, callback: Callback<B>) => void,
+  fn2: (b: B, callback: Callback<C>) => void
+) => (a: A, callback: Callback<C>): void => {
+  fn1(a, (error, result) => {
+    if (error) {
+      ;(callback as any)(error)
+    } else {
+      fn2(result, callback)
+    }
+  })
+}
+
+/**
+ * Lift synchronous function to asynchronous function.
+ */
+export const toAsync = <A, B>(fn: (a: A) => B) => (
+  a: A,
+  callback: Callback<B>
+): void => {
+  let error: Error | undefined
+  let b: B | undefined
+  try {
+    b = fn(a)
+  } catch (e) {
+    error = e
+  }
+  callback(error, b!)
+}
 
 /**
  * Use instead of `Array.from` to not annoy older browsers or use instead of
@@ -53,3 +105,15 @@ export const createImageData = ((): ((
     }
   }
 })()
+
+/**
+ * Read a `Blob` to memory and return an `ArrayBuffer`.
+ */
+export const readBlob = (blob: Blob, callback: Callback<ArrayBuffer>) => {
+  const fileReader = new FileReader()
+  fileReader.onload = () => {
+    callback(undefined, fileReader.result as ArrayBuffer)
+  }
+  fileReader.onerror = callback as any
+  fileReader.readAsArrayBuffer(blob)
+}
