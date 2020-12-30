@@ -1,3 +1,5 @@
+import { Environment, environment } from './environment'
+
 export type Head<T extends any[]> = T extends [...infer H, any] ? H : never
 export type Last<T extends any[]> = T extends [...infer H, infer L] ? L : never
 export type Prepend<I, T extends any[]> = [I, ...T]
@@ -11,13 +13,14 @@ export type UnwrapCallback<T> = T extends Callback<infer U> ? U : never
 /**
  * Callback type if used without Promises.
  */
-export type Callback<T> = (error: Error | undefined, result: T) => void
+export type Callback<T> = (error: Error | undefined | null, result: T) => void
 
 const { slice } = Array.prototype
 
 export const isFunction = (f: unknown): f is Function => typeof f === 'function'
 
-export const isBlob = (b: unknown): b is Blob => b instanceof Blob
+export const isBlob = (b: unknown): b is Blob =>
+  environment !== Environment.NodeJs && b instanceof Blob
 
 /**
  * Just the identity function.
@@ -55,6 +58,34 @@ export const toAsync = <A, B>(fn: (a: A) => B) => (
     error = e
   }
   callback(error, b!)
+}
+
+/**
+ * Convert an internal callback style function to an external function that can
+ * work with callbacks and `Promise`s. If the last parameter is not a function,
+ * a `Promise` is returned. That means, that also optional parameters work, but
+ * the last parameter before the callback must not be a function.
+ */
+export const enablePromise = <T extends Append<any[], Callback<any>>>(
+  fn: (...args: T) => void
+): {
+  (...args: T): void
+  (...args: Head<T>): Promise<UnwrapCallback<Last<T>>>
+} => (...args: any[]): any => {
+  let result: Promise<Last<T>> | undefined
+  if (!isFunction(args[args.length - 1])) {
+    result = new Promise((resolve, reject) => {
+      args.push((error: Error | undefined | null, result: Last<T>) => {
+        if (error) {
+          reject(error)
+        } else {
+          resolve(result)
+        }
+      })
+    })
+  }
+  fn(...(args as T))
+  return result
 }
 
 /**
@@ -96,6 +127,9 @@ export const createImageData = ((): ((
     new ImageData(1, 1) // Throws in old browsers
     return (data, width, height) => new ImageData(data, width, height)
   } catch {
+    if (environment === Environment.NodeJs) {
+      return (data, width, height) => ({ data, width, height })
+    }
     return (data, width, height) => {
       const canvas = document.createElement('canvas')
       const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
@@ -117,3 +151,12 @@ export const readBlob = (blob: Blob, callback: Callback<ArrayBuffer>) => {
   fileReader.onerror = callback as any
   fileReader.readAsArrayBuffer(blob)
 }
+
+/**
+ * Converts a node.js Buffer which is a subclass of Uint8Array to a Uint8Array
+ * sharing its memory. Returns a given direct Uint8Array.
+ */
+export const assureDirectUint8Array = (buffer: Buffer | Uint8Array) =>
+  environment === Environment.NodeJs && Buffer.isBuffer(buffer)
+    ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.length)
+    : buffer

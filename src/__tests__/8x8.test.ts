@@ -1,75 +1,52 @@
 import {
-  readImageFile,
-  readImageDataFromPng,
-  writeImageDataToPng,
+  getJpegBuffer,
+  getExpectedJpeg,
+  getExpectedImageData,
 } from './util/testUtil'
 import { decodeJpeg } from '../jpeg.decode'
 import { decodeFrame } from '../frame.decode'
-import jpeg8x8Expected from './images/8x8'
-import jpeg8x16Expected from './images/8x16'
-import jpeg16x8Expected from './images/16x8'
-import jpeg16x16Expected from './images/16x16'
-import { writeFileSync } from 'fs'
 
 describe('images', () => {
   it('8x8.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile('8x8.jpg')
+    const jpegData = getJpegBuffer('8x8')
     const jpeg = decodeJpeg(jpegData)
-    expect(jpeg).toEqual(jpeg8x8Expected)
+    expect(jpeg).toEqual(await getExpectedJpeg('8x8'))
     const imageData = decodeFrame(jpeg)
     expect(
       Buffer.from(imageData[0]).compare(
-        Buffer.from(
-          await (
-            await readImageDataFromPng('src/__tests__/images/8x8-expected.png')
-          ).data
-        )
+        Buffer.from((await getExpectedImageData('8x8')).data)
       )
     ).toBe(0)
   })
   it('8x16.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile('8x16.jpg')
+    const jpegData = getJpegBuffer('8x16')
     const jpeg = decodeJpeg(jpegData)
-    expect(jpeg).toEqual(jpeg8x16Expected)
+    expect(jpeg).toEqual(await getExpectedJpeg('8x16'))
     const imageData = decodeFrame(jpeg)
     expect(
       Buffer.from(imageData[0]).compare(
-        Buffer.from(
-          await (
-            await readImageDataFromPng('src/__tests__/images/8x16-expected.png')
-          ).data
-        )
+        Buffer.from((await getExpectedImageData('8x16')).data)
       )
     ).toBe(0)
   })
   it('down scale 8', async () => {
-    const jpegData = readImageFile('64x64.jpg')
+    const jpegData = getJpegBuffer('64x64')
     const jpeg = decodeJpeg(jpegData)
     const imageData = decodeFrame(jpeg, { downScale: 8 })
     expect(
       Buffer.from(imageData[0]).compare(
-        Buffer.from(
-          await (
-            await readImageDataFromPng(
-              'src/__tests__/images/64x64-scale8-expected.png'
-            )
-          ).data
-        )
+        Buffer.from((await getExpectedImageData('64x64-scale8')).data)
       )
     ).toBe(0)
   })
   it('16x8.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile('16x8.jpg')
+    const jpegData = getJpegBuffer('16x8')
     const jpeg = decodeJpeg(jpegData)
-    expect(jpeg).toEqual(jpeg16x8Expected)
+    expect(jpeg).toEqual(await getExpectedJpeg('16x8'))
     const imageData = decodeFrame(jpeg)
     expect(
       Buffer.from(imageData[0]).compare(
-        Buffer.from(
-          await (
-            await readImageDataFromPng('src/__tests__/images/16x8-expected.png')
-          ).data
-        )
+        Buffer.from((await getExpectedImageData('16x8')).data)
       )
     ).toBe(0)
     /*
@@ -79,19 +56,13 @@ describe('images', () => {
     */
   })
   it('16x16.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile('16x16.jpg')
+    const jpegData = getJpegBuffer('16x16')
     const jpeg = decodeJpeg(jpegData)
-    expect(jpeg).toEqual(jpeg16x16Expected)
+    expect(jpeg).toEqual(await getExpectedJpeg('16x16'))
     const imageData = decodeFrame(jpeg)
     expect(
       Buffer.from(imageData[0]).compare(
-        Buffer.from(
-          await (
-            await readImageDataFromPng(
-              'src/__tests__/images/16x16-expected.png'
-            )
-          ).data
-        )
+        Buffer.from((await getExpectedImageData('16x16')).data)
       )
     ).toBe(
       0
@@ -100,21 +71,17 @@ describe('images', () => {
   })
 
   it('32x32-subsampling-221221-mcu-2x2-expected.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile('32x32-subsampling-221221-mcu-2x2.jpg')
+    const jpegData = getJpegBuffer('32x32-subsampling-221221-mcu-2x2')
     const jpeg = decodeJpeg(jpegData)
     expect(jpeg).toEqual(
-      (await import('./images/32x32-subsampling-221221-mcu-2x2')).default
+      await getExpectedJpeg('32x32-subsampling-221221-mcu-2x2')
     )
     const imageData = decodeFrame(jpeg)
 
     expect(
       Buffer.from(imageData[0]).compare(
         Buffer.from(
-          await (
-            await readImageDataFromPng(
-              'src/__tests__/images/32x32-subsampling-221221-mcu-2x2-expected.png'
-            )
-          ).data
+          (await getExpectedImageData('32x32-subsampling-221221-mcu-2x2')).data
         )
       )
     ).toBe(
@@ -124,13 +91,10 @@ describe('images', () => {
   })
 
   it('35x35-subsampling-122111-partial-mcu-3x3-expected.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile(
-      '35x35-subsampling-122111-partial-mcu-3x3.jpg'
-    )
+    const jpegData = getJpegBuffer('35x35-subsampling-122111-partial-mcu-3x3')
     const jpeg = decodeJpeg(jpegData)
     expect(jpeg).toEqual(
-      (await import('./images/35x35-subsampling-122111-partial-mcu-3x3'))
-        .default
+      await getExpectedJpeg('35x35-subsampling-122111-partial-mcu-3x3')
     )
     const imageData = decodeFrame(jpeg)
     /*
@@ -143,9 +107,9 @@ describe('images', () => {
     expect(
       Buffer.from(imageData[0]).compare(
         Buffer.from(
-          await (
-            await readImageDataFromPng(
-              'src/__tests__/images/35x35-subsampling-122111-partial-mcu-3x3-expected.png'
+          (
+            await getExpectedImageData(
+              '35x35-subsampling-122111-partial-mcu-3x3'
             )
           ).data
         )
@@ -185,7 +149,7 @@ describe('images', () => {
     'subsampling-24x32-311114',
   ]) {
     it(`${fileName}.jpg decodes to expected image`, async () => {
-      const jpegData = readImageFile(`${fileName}.jpg`)
+      const jpegData = getJpegBuffer(fileName)
       const jpeg = decodeJpeg(jpegData)
       //expect(jpeg).toEqual(jpeg8x8Expected)
       const imageData = decodeFrame(jpeg)
@@ -196,21 +160,15 @@ describe('images', () => {
       */
       expect(
         Buffer.from(imageData[0]).compare(
-          Buffer.from(
-            await (
-              await readImageDataFromPng(
-                `src/__tests__/images/${fileName}-expected.png`
-              )
-            ).data
-          )
+          Buffer.from((await getExpectedImageData(fileName)).data)
         )
       ).toBe(0)
     })
   }
   xit('7x11.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile('7x11.jpg')
+    const jpegData = getJpegBuffer('7x11')
     const jpeg = decodeJpeg(jpegData)
-    expect(jpeg).toEqual((await import('./images/7x11')).default)
+    expect(jpeg).toEqual(await getExpectedJpeg('7x11'))
     /*
     const imageData = decodeFrame(jpeg)
     expect(imageData).toEqual(
@@ -219,9 +177,9 @@ describe('images', () => {
     */
   })
   xit('11x7.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile('11x7.jpg')
+    const jpegData = getJpegBuffer('11x7')
     const jpeg = decodeJpeg(jpegData)
-    expect(jpeg).toEqual((await import('./images/11x7')).default)
+    expect(jpeg).toEqual(await getExpectedJpeg('11x7'))
     /*
     const imageData = decodeFrame(jpeg)
     expect(imageData).toEqual(
@@ -230,9 +188,9 @@ describe('images', () => {
     */
   })
   xit('8x8-cmyk.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile('8x8-cmyk.jpg')
+    const jpegData = getJpegBuffer('8x8-cmyk')
     const jpeg = decodeJpeg(jpegData)
-    expect(jpeg).toEqual((await import('./images/8x8-cmyk')).default)
+    expect(jpeg).toEqual(await getExpectedJpeg('8x8-cmyk'))
     //const imageData = decodeFrame(jpeg)
     /*
     expect(imageData).toEqual(
@@ -241,10 +199,10 @@ describe('images', () => {
     */
   })
   xit('8x8-gray.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile('8x8-gray.jpg')
+    const jpegData = getJpegBuffer('8x8-gray')
     const jpeg = decodeJpeg(jpegData)
     //writeFileSync('src/__tests__/images/8x8-gray.ts', JSON.stringify(jpeg))
-    expect(jpeg).toEqual((await import('./images/8x8-gray')).default)
+    expect(jpeg).toEqual(await getExpectedJpeg('8x8-gray'))
     //const imageData = decodeFrame(jpeg)
     /*
     expect(imageData).toEqual(
@@ -253,9 +211,9 @@ describe('images', () => {
     */
   })
   xit('32x32.jpg decodes to expected image', async () => {
-    const jpegData = readImageFile('32x32.jpg')
+    const jpegData = getJpegBuffer('32x32')
     const jpeg = decodeJpeg(jpegData)
-    expect(jpeg).toEqual((await import('./images/32x32')).default)
+    expect(jpeg).toEqual(await getExpectedJpeg('32x32'))
     const imageData = decodeFrame(jpeg)
     /*
     expect(imageData).toEqual(

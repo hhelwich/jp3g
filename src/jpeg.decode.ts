@@ -4,6 +4,7 @@ import { decodeDHT } from './huffmanTable.decode'
 import { decodeDQT } from './quantizationTable.decode'
 import { getHiLow, getUint16 } from './common.decode'
 import { decodeAPP, isAppMarker, decodeCOM } from './app.decode'
+import { assureDirectUint8Array } from './util'
 
 const isRestartMarker = (marker: number) => 0xd0 <= marker && marker <= 0xd7
 
@@ -70,6 +71,7 @@ export const getDiff = (partialDiff: number, bitLength: number) =>
  * @param jpeg
  */
 export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
+  jpeg = assureDirectUint8Array(jpeg)
   // JPEG must start with a SOI marker
   if (jpeg[0] !== 0xff || jpeg[1] !== Marker.SOI) {
     throw new InvalidJpegError('Missing SOI marker')

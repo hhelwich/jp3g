@@ -1,6 +1,10 @@
 import fs from 'fs'
 import sharp from 'sharp'
 
+const { abs } = Math
+
+const imageDir = 'src/__tests__/images/'
+
 export const range = (length: number) => {
   const result: number[] = []
   for (let i = 0; i < length; i += 1) {
@@ -9,8 +13,8 @@ export const range = (length: number) => {
   return result
 }
 
-export const readImageFile = (fileName: string) =>
-  new Uint8Array(fs.readFileSync(`src/__tests__/images/${fileName}`))
+export const getJpegBuffer = (fileName: string) =>
+  fs.readFileSync(`${imageDir}${fileName}.jpg`)
 
 export const writeImageDataToPng = async (
   { data, width, height }: ImageData,
@@ -18,12 +22,13 @@ export const writeImageDataToPng = async (
 ) => {
   await sharp(Buffer.from(data), { raw: { width, height, channels: 4 } })
     .removeAlpha()
-    .toFile(`src/__tests__/images/${fileName}.png`)
+    .toFile(`${imageDir}${fileName}.png`)
 }
 
-export const readImageDataFromPng = async (
+export const getExpectedImageData = async (
   fileName: string
 ): Promise<ImageData> => {
+  fileName = `${imageDir}${fileName}-expected.png`
   const image = sharp(fileName).raw().ensureAlpha()
   const [{ width, height }, data] = await Promise.all([
     image.metadata(),
@@ -35,6 +40,9 @@ export const readImageDataFromPng = async (
     data: new Uint8ClampedArray(data),
   }
 }
+
+export const getExpectedJpeg = async (fileName: string) =>
+  (await import(`../images/${fileName}`)).default
 
 /**
  * Return a list of integers, evenly scaled from 0 to max.
@@ -69,3 +77,35 @@ export const randomQTable = (bytes: 1 | 2 = 1) =>
     } while (q === 0)
     return q
   })
+
+/**
+ * Convert a callback style function to a Promise style function.
+ */
+export const promisify = (fn: (...args: any[]) => any) => (...args: any[]) =>
+  new Promise((resolve, reject) => {
+    fn(...args, (error: any, result: any) => {
+      if (error) {
+        reject(error)
+      } else {
+        resolve(result)
+      }
+    })
+  })
+
+export const greatestCommonDivisor = (a: number, b: number) => {
+  if (a === 0) {
+    return abs(b)
+  }
+  if (b === 0) {
+    return abs(a)
+  }
+  do {
+    ;[a, b] = [b, a % b]
+  } while (b !== 0)
+  return abs(a)
+}
+
+export const reduceFraction = (a: number, b: number) => {
+  const gcd = greatestCommonDivisor(a, b)
+  return [a / gcd, b / gcd]
+}

@@ -1,5 +1,5 @@
 import { environment, Environment } from './environment'
-import { Append, Callback, array, isFunction } from './util'
+import { Append, array, Callback } from './util'
 
 /**
  * This module contains code to call functions both directly and in a worker.
@@ -199,26 +199,10 @@ export const workerFunction = <A extends any[], B extends any[], C, D>(
 } => {
   const fnId = workerFunctions.length
   workerFunctions.push([preProcess, inputTransfer, fn, outputTransfer])
-  return ((...args: unknown[]) => {
-    // Queue call for processing
-    const lastIndex = args.length - 1
-    const lastArgument = args[lastIndex]
-    let callback: Callback<D>
-    let result: Promise<D> | undefined
-    if (isFunction(lastArgument)) {
-      callback = lastArgument as Callback<D>
-      args = array(args, 0, lastIndex)
-    } else {
-      result = new Promise((resolve, reject) => {
-        callback = (error, result) => {
-          if (error) {
-            reject(error)
-          } else {
-            resolve(result)
-          }
-        }
-      })
-    }
+  return ((...args: any[]) => {
+    const callbackIdx = args.length - 1
+    const callback: Callback<D> = args[callbackIdx]
+    args = array(args, 0, callbackIdx)
     const message: MessageToWorker = [callCounter++, fnId, args]
     callQueue.push([
       message,
@@ -228,7 +212,6 @@ export const workerFunction = <A extends any[], B extends any[], C, D>(
       },
     ])
     tryDistributeCalls()
-    return result
   }) as any
 }
 
@@ -262,7 +245,7 @@ if (environment === Environment.BrowserMain) {
     }
     tryDistributeCalls()
   }
-} else {
+} else if (environment === Environment.BrowserWorker) {
   // Register function call handler in the worker.
   onmessage = onMessageToWorker(postMessage as any)
 }

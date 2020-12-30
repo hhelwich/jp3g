@@ -11,8 +11,11 @@ import {
   isBlob,
   composeAsync,
   toAsync,
+  enablePromise,
 } from './util'
 import { decodeFrame, DecodeOptions } from './frame.decode'
+
+const { isArray } = Array
 
 // Create variable for correct type in d.ts file (will be removed my minifier)
 const version = _version
@@ -37,14 +40,14 @@ const toArrayBuffer = (
   if (isBlob(data)) {
     readBlob(data, callback)
   } else {
-    callback(undefined, data)
+    callback(null, data)
   }
 }
 
-const decode: {
-  (jpegData: ArrayBufferLike | Blob): Promise<Jpeg>
-  (jpegData: ArrayBufferLike | Blob, callback: Callback<Jpeg>): void
-} = workerFunction(
+const decode: (
+  jpegData: ArrayBufferLike | Blob,
+  callback: Callback<Jpeg>
+) => void = workerFunction(
   composeAsync(
     composeAsync(
       toAsync(([a]: [ArrayBufferLike | Blob]) => a),
@@ -77,7 +80,33 @@ const decodeImage: {
   args => createImageData(...args)
 ) as any
 
-const _jp3g = { setWorkerCount, version, decode, decodeImage }
+const create = (jpegData: ArrayBufferLike | Blob | Jpeg, _factor: number) => {
+  const toJPEG = (callback: Callback<Jpeg>) => {
+    if (!isArray(jpegData)) {
+      decode(jpegData, callback)
+    } else {
+      callback(null, jpegData)
+    }
+  }
+  return {
+    scale: (factor: number) => create(jpegData, _factor * factor),
+    toJPEG: enablePromise(toJPEG),
+    toImageData: enablePromise((callback: Callback<ImageData>) => {
+      toJPEG((error, jpeg) => {
+        if (error) {
+          ;(callback as any)(error)
+        } else {
+          decodeImage(jpeg, { downScale: 1 / _factor }, callback)
+        }
+      })
+    }),
+  }
+}
+
+const _jp3g = (jpegData: ArrayBufferLike | Blob | Jpeg) => create(jpegData, 1)
+
+_jp3g.setWorkerCount = setWorkerCount
+_jp3g.version = version
 
 export default _jp3g
 
