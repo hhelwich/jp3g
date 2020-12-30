@@ -32,7 +32,6 @@ type WorkerWithState = [worker: Worker, busy: boolean]
  * Worker functions and its helper functions.
  */
 const workerFunctions: [
-  preProcess: (args: any, callback: Callback<any[]>) => void,
   inputTransfer: (args: any) => ArrayBuffer[],
   workerFunction: WorkerFunction,
   outputTransfer: (result: any) => ArrayBuffer[]
@@ -63,7 +62,7 @@ const onMessageToWorker = (
     transfer?: ArrayBuffer[]
   ) => void
 ) => ({ data: [callId, fnId, args] }: MessageEvent<MessageToWorker>) => {
-  const [, , fn, outputTransfer] = workerFunctions[fnId]
+  const [, fn, outputTransfer] = workerFunctions[fnId]
   let result: any
   let transfer: ArrayBuffer[] | undefined
   let errorMessage: string | undefined
@@ -140,19 +139,9 @@ const notifyStartCall = (
 ) => {
   const [callId, fnId, args] = message
   activeCalls.set(callId, callback)
-  const [preProcess, inputTransfer] = workerFunctions[fnId]
-  preProcess(args, (error, args2) => {
-    if (error) {
-      ;(callback as any)(error)
-    } else {
-      try {
-        const transfer = inputTransfer(args2)
-        worker.postMessage([callId, fnId, args2], transfer)
-      } catch (error) {
-        ;(callback as any)(error)
-      }
-    }
-  })
+  const [inputTransfer] = workerFunctions[fnId]
+  const transfer = inputTransfer(args)
+  worker.postMessage([callId, fnId, args], transfer)
 }
 
 /**
@@ -176,38 +165,27 @@ const tryDistributeCalls = () => {
 }
 
 /**
- * Returns an asynchronous function, that runs a synchronous function in a
- * worker pool. Additionally to the function, that is executed in the worker
- * helper functions are used for each function call. The arguments of the parent
- * function can be mapped asynchronously to the arguments of the worker function
- * using the `preProcess` function. This is useful to perform I/O operations
- * before. The transfer functions are used to extract `Transferable`s so that
- * they can be passed to the worker and back by reference.
- * The `postProcess` function can be used to perform operations on the result
- * e.g. to create an instance which is not possible to create in a worker
- * environment.
+ * Returns an asynchronous function that runs a synchronous function in a worker
+ * pool.
+ * The transfer functions are used to extract `Transferable`s so that they can
+ * be passed to the worker and back by reference.
  */
-export const workerFunction = <A extends any[], B extends any[], C, D>(
-  preProcess: (args: A, callback: Callback<B>) => void,
-  inputTransfer: (args: B) => ArrayBuffer[],
-  fn: (...args: B) => C,
-  outputTransfer: (result: C) => ArrayBuffer[],
-  postProcess: (arg: C) => D
-): {
-  (...args: A): Promise<D>
-  (...args: Append<A, Callback<D>>): void
-} => {
+export const workerFunction = <A extends any[], B>(
+  inputTransfer: (args: A) => ArrayBuffer[],
+  fn: (...args: A) => B,
+  outputTransfer: (result: B) => ArrayBuffer[]
+): ((...args: Append<A, Callback<B>>) => void) => {
   const fnId = workerFunctions.length
-  workerFunctions.push([preProcess, inputTransfer, fn, outputTransfer])
+  workerFunctions.push([inputTransfer, fn, outputTransfer])
   return ((...args: any[]) => {
     const callbackIdx = args.length - 1
-    const callback: Callback<D> = args[callbackIdx]
+    const callback: Callback<B> = args[callbackIdx]
     args = array(args, 0, callbackIdx)
     const message: MessageToWorker = [callCounter++, fnId, args]
     callQueue.push([
       message,
       (error, result) => {
-        callback(error, postProcess(result as C))
+        callback(error, result as B)
         tryDistributeCalls()
       },
     ])

@@ -30,34 +30,37 @@ export const identity = <T>(a: T): T => a
 /**
  * Compose two asynchronous functions.
  */
-export const composeAsync = <A, B, C>(
-  fn1: (a: A, callback: Callback<B>) => void,
+export const composeAsync = <A extends any[], B, C>(
+  fn1: (...as: Append<A, Callback<B>>) => void,
   fn2: (b: B, callback: Callback<C>) => void
-) => (a: A, callback: Callback<C>): void => {
-  fn1(a, (error, result) => {
+) => (...as: Append<A, Callback<C>>): void => {
+  const len = as.length - 1
+  const args = array(as, 0, len) as A
+  const callback = as[len] as Callback<C>
+  fn1(...args, ((error: Error, b: B) => {
     if (error) {
       ;(callback as any)(error)
     } else {
-      fn2(result, callback)
+      fn2(b, callback)
     }
-  })
+  }) as Callback<B>)
 }
 
 /**
  * Lift synchronous function to asynchronous function.
  */
-export const toAsync = <A, B>(fn: (a: A) => B) => (
-  a: A,
-  callback: Callback<B>
+export const toAsync = <A extends any[], B>(fn: (...a: A) => B) => (
+  ...a: Append<A, Callback<B>>
 ): void => {
   let error: Error | undefined
   let b: B | undefined
+  const len = a.length - 1
   try {
-    b = fn(a)
+    b = fn(...(array(a, 0, len) as A))
   } catch (e) {
     error = e
   }
-  callback(error, b!)
+  ;(a[len] as Callback<B>)(error, b!)
 }
 
 /**

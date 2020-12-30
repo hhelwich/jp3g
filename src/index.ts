@@ -13,7 +13,7 @@ import {
   toAsync,
   enablePromise,
 } from './util'
-import { decodeFrame, DecodeOptions } from './frame.decode'
+import { decodeFrame, DecodeOptions, ImageDataArgs } from './frame.decode'
 
 const { isArray } = Array
 
@@ -45,45 +45,35 @@ const toArrayBuffer = (
 }
 
 const decode: (
-  jpegData: ArrayBufferLike | Blob,
+  jpegData: ArrayBufferLike,
   callback: Callback<Jpeg>
 ) => void = workerFunction(
-  composeAsync(
-    composeAsync(
-      toAsync(([a]: [ArrayBufferLike | Blob]) => a),
-      toArrayBuffer
-    ),
-    toAsync((a: ArrayBufferLike): [ArrayBufferLike] => [a])
-  ),
   identity,
   (jpegData: ArrayBufferLike) => decodeJpeg(new Uint8Array(jpegData)),
-  jpeg => [getJpegBuffer(jpeg)],
-  identity
+  jpeg => [getJpegBuffer(jpeg)]
 )
 
-const decodeImage: {
-  (jpeg: Jpeg, options?: DecodeOptions): Promise<ImageData>
-  (jpeg: Jpeg, callback: Callback<ImageData>): void
-  (
-    jpeg: Jpeg,
-    options: DecodeOptions | undefined,
-    callback: Callback<ImageData>
-  ): void
-} = workerFunction(
-  toAsync(identity) as (
-    args: [Jpeg, DecodeOptions | undefined],
-    callback: Callback<[Jpeg, DecodeOptions | undefined]>
-  ) => void,
+const decodeImage: (
+  jpeg: Jpeg,
+  options: DecodeOptions,
+  callback: Callback<ImageDataArgs>
+) => void = workerFunction(
   ([jpeg]) => [getJpegBuffer(jpeg)],
   decodeFrame,
-  ([data]) => [data.buffer],
-  args => createImageData(...args)
+  ([data]) => [data.buffer]
 ) as any
+
+const decodeImage2 = (decodeOptions: DecodeOptions) => (
+  jpeg: Jpeg,
+  callback: Callback<ImageDataArgs>
+) => {
+  decodeImage(jpeg, decodeOptions, callback)
+}
 
 const create = (jpegData: ArrayBufferLike | Blob | Jpeg, _factor: number) => {
   const toJPEG = (callback: Callback<Jpeg>) => {
     if (!isArray(jpegData)) {
-      decode(jpegData, callback)
+      composeAsync(toArrayBuffer, decode)(jpegData, callback)
     } else {
       callback(null, jpegData)
     }
@@ -91,15 +81,15 @@ const create = (jpegData: ArrayBufferLike | Blob | Jpeg, _factor: number) => {
   return {
     scale: (factor: number) => create(jpegData, _factor * factor),
     toJPEG: enablePromise(toJPEG),
-    toImageData: enablePromise((callback: Callback<ImageData>) => {
-      toJPEG((error, jpeg) => {
-        if (error) {
-          ;(callback as any)(error)
-        } else {
-          decodeImage(jpeg, { downScale: 1 / _factor }, callback)
-        }
-      })
-    }),
+    toImageData: enablePromise(
+      composeAsync(
+        toJPEG,
+        composeAsync(
+          decodeImage2({ downScale: 1 / _factor }),
+          toAsync((args: ImageDataArgs) => createImageData(...args))
+        )
+      )
+    ),
   }
 }
 

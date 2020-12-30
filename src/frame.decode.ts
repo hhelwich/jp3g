@@ -44,7 +44,11 @@ const createImageData = (width: number, height: number): ImageDataArgs => [
  * Some old browsers cannot create an `ImageData` in a worker, so we transfer
  * the parameters of the `ImageData` constructor.
  */
-type ImageDataArgs = [data: Uint8ClampedArray, width: number, height: number]
+export type ImageDataArgs = [
+  data: Uint8ClampedArray,
+  width: number,
+  height: number
+]
 
 export type DecodeOptions = {
   downScale?: number
