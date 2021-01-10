@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "es5",
     "module": "ES6",
-    "lib": ["WebWorker", "DOM"],
+    "lib": ["WebWorker", "DOM", "ES2019.Array"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -11,5 +11,5 @@
     "resolveJsonModule": true
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["src/**/__tests__/**/*.ts", "demo/**/*.js"]
+  "exclude": ["demo/**/*.js"]
 }

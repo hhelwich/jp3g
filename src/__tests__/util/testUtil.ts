@@ -82,7 +82,7 @@ export const randomQTable = (bytes: 1 | 2 = 1) =>
  * Convert a callback style function to a Promise style function.
  */
 export const promisify = (fn: (...args: any[]) => any) => (...args: any[]) =>
-  new Promise((resolve, reject) => {
+  new Promise<any>((resolve, reject) => {
     fn(...args, (error: any, result: any) => {
       if (error) {
         reject(error)
@@ -109,3 +109,10 @@ export const reduceFraction = (a: number, b: number) => {
   const gcd = greatestCommonDivisor(a, b)
   return [a / gcd, b / gcd]
 }
+
+export const sleep = (ms?: number) =>
+  new Promise(resolve => {
+    setTimeout(resolve, ms)
+  })
+
+export const getTime = () => process.hrtime.bigint()

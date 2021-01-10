@@ -1,5 +1,5 @@
 import { environment, Environment } from './environment'
-import { Append, array, Callback } from './util'
+import { Append, array, Callback, waitState } from './util'
 
 /**
  * This module contains code to call functions both directly and in a worker.
@@ -15,18 +15,22 @@ type WorkerFunction = (...args: any[]) => any
 /**
  * Type of a message that is sent to the worker in order to call a function.
  */
-type MessageToWorker = [callId: number, fnId: number, args: unknown[]]
+export type MessageToWorker = [callId: number, fnId: number, args: unknown[]]
 
 /**
  * Type of a message that is sent back to the main thread by the worker after a
  * function has been completed in the worker.
  */
-type MessageFromWorker<T> = [callId: number, errorMessage?: string, result?: T]
+export type MessageFromWorker<T> = [
+  callId: number,
+  errorMessage?: string,
+  result?: T
+]
 
 /**
  * A worker and its state.
  */
-type WorkerWithState = [worker: Worker, busy: boolean]
+type WorkerWithState = [worker: Worker, idle: boolean]
 
 /**
  * Worker functions and its helper functions.
@@ -56,7 +60,7 @@ const callQueue: [message: MessageToWorker, callback: Callback<unknown>][] = []
 /**
  * Creates a worker handler that runs a function in a worker.
  */
-const onMessageToWorker = (
+export const onMessageToWorker = (
   postMessageFromWorker: (
     message: MessageFromWorker<unknown>,
     transfer?: ArrayBuffer[]
@@ -81,12 +85,12 @@ const onMessageToWorker = (
  * messages from the worker and initializes the status of the worker as idle.
  */
 const initWorker = (worker: Worker): WorkerWithState => {
-  const workerWithState: WorkerWithState = [worker, false]
+  const workerWithState: WorkerWithState = [worker, true]
   worker.onmessage = ({
     data: [callId, errorMessage, result],
   }: MessageEvent<MessageFromWorker<unknown>>) => {
     // Mark worker as idle
-    workerWithState[1] = false
+    workerWithState[1] = true
     // Terminate function call
     const callback = activeCalls.get(callId) as Callback<any>
     activeCalls.delete(callId)
@@ -117,6 +121,8 @@ const fakeWorker = (): Worker => {
   return worker
 }
 
+export let maxWorkerCount = 0
+
 /**
  * In case no workers are set, this fake worker is used to process the functions
  * in the main thread.
@@ -125,7 +131,7 @@ const mainWorkerWithState: [WorkerWithState] = [initWorker(fakeWorker())]
 
 /**
  * The list of all available workers and the information whether they are
- * currently busy.
+ * currently idle.
  */
 let workersWithState: WorkerWithState[] = mainWorkerWithState
 
@@ -144,25 +150,61 @@ const notifyStartCall = (
   worker.postMessage([callId, fnId, args], transfer)
 }
 
+let scriptSrc: string
+
 /**
  * Waiting calls are passed on to idle workers for processing.
  * This function is called on the main thread on every worker function call,
- * every time a worker has finished processing a function and when the workers
- * are changed.
+ * every time a worker has finished processing a function and when the max
+ * worker count is changed.
  */
 const tryDistributeCalls = () => {
-  for (const workerWithState of workersWithState) {
-    const busy = workerWithState[1]
-    if (!busy) {
-      const nextCall = callQueue.shift()
-      if (!nextCall) {
-        return
-      }
-      workerWithState[1] = true
-      notifyStartCall(workerWithState[0], ...nextCall)
+  if (workersWithState === mainWorkerWithState) {
+    workersWithState = []
+  }
+  let workerDiff = maxWorkerCount - workersWithState.length
+  // If too much workers => Terminate idle workers
+  for (let i = 0; workerDiff < 0 && i < workersWithState.length; i += 1) {
+    const [worker, idle] = workersWithState[i]
+    if (idle) {
+      worker.terminate()
+      workersWithState.splice(i, 1)
+      workerDiff += 1
+      i -= 1
     }
   }
+  // Create new workers if needed
+  const idleCount = workersWithState.reduce(
+    (count, [, idle]) => count + +idle,
+    0
+  )
+  const newWorkerCount = Math.min(workerDiff - idleCount, callQueue.length)
+  for (let i = 0; i < newWorkerCount; i += 1) {
+    const workerWithState = initWorker(new Worker(scriptSrc))
+    workersWithState.push(workerWithState)
+  }
+  // Delegate waiting calls to idle workers
+  if (workersWithState.length === 0) {
+    workersWithState = mainWorkerWithState
+  }
+  for (const workerWithState of workersWithState) {
+    const [worker, idle] = workerWithState
+    if (idle) {
+      const nextCall = callQueue.shift()
+      if (nextCall) {
+        workerWithState[1] = false
+        notifyStartCall(worker, ...nextCall)
+      }
+    }
+  }
+  checkIdle()
 }
+
+const [checkIdle, waitIdle] = waitState(() =>
+  workersWithState.some(([, idle]) => idle)
+)
+
+export { waitIdle }
 
 /**
  * Returns an asynchronous function that runs a synchronous function in a worker
@@ -193,15 +235,15 @@ export const workerFunction = <A extends any[], B>(
   }) as any
 }
 
-export let setWorkerCount: (workeCount: number) => void
+export let setWorkerCount: (workerCount: number) => void
 
 if (environment === Environment.BrowserMain) {
   /**
    * The URL of this script. It gets a little hacky for browsers not supporting
    * `document.currentScript`.
    */
-  const scriptSrc = (
-    (document.currentScript as HTMLScriptElement | undefined) ||
+  scriptSrc = (
+    (document.currentScript as HTMLScriptElement | undefined) ??
     (() => {
       const scripts = document.getElementsByTagName('script')
       return scripts[scripts.length - 1]
@@ -213,15 +255,10 @@ if (environment === Environment.BrowserMain) {
    * functions.
    */
   setWorkerCount = (workerCount: number) => {
-    if (window.Worker && workerCount > 0) {
-      workersWithState = []
-      for (let i = 0; i < workerCount; i += 1) {
-        workersWithState.push(initWorker(new Worker(scriptSrc)))
-      }
-    } else {
-      workersWithState = mainWorkerWithState
+    if (window.Worker && maxWorkerCount !== workerCount) {
+      maxWorkerCount = workerCount
+      tryDistributeCalls()
     }
-    tryDistributeCalls()
   }
 } else if (environment === Environment.BrowserWorker) {
   // Register function call handler in the worker.

@@ -11,7 +11,9 @@ const config = ({ minify }) => ({
   },
   plugins: [
     json(),
-    typescript(),
+    typescript({
+      exclude: ['src/**/__tests__/**/*.ts'],
+    }),
     ...(minify
       ? [
           terser({

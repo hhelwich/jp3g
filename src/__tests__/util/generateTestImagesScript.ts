@@ -5,6 +5,7 @@ import { decodeFrame } from '../../frame.decode'
 import { distanceRgb } from './distanceRgb'
 import sharp from 'sharp'
 import { JFIFUnits, Jpeg, QuantizationTable } from '../../jpeg'
+import { createImageData } from '../../util'
 
 const imageDir = 'src/__tests__/images/'
 
@@ -147,7 +148,7 @@ type FileInfo = {
         const metaData = await sharpImage.metadata()
         // TODO Check that rounding is the same as in libjpeg downscaling
         sharpImage = sharpImage.resize({
-          width: round(metaData.width / downScale),
+          width: round(metaData.width! / downScale),
         })
       }
       const referenceImage = await sharpImage
@@ -155,10 +156,12 @@ type FileInfo = {
         .toBuffer({ resolveWithObject: true })
       // Decode image with decoder under test
       const jpeg = decodeJpeg(new Uint8Array(readFileSync(fileName)))
-      const image = decodeFrame(jpeg, downScale)
+      const [imageData, imageWidth, imageHeight] = decodeFrame(jpeg, {
+        downScale,
+      })
       // Verify metadata
       const { width, height } = referenceImage.info
-      if (image.height !== height || image.width !== width) {
+      if (imageHeight !== height || imageWidth !== width) {
         throw Error(`Unexpected image dimension: ${jpegFile.name}`)
       }
       // Verify pixel data is very similar to libjpeg decoder result
@@ -168,11 +171,11 @@ type FileInfo = {
       for (let x = 0; x < width; x += 1) {
         for (let y = 0; y < height; y += 1) {
           const i = (x + y * width) * 4
-          const alpha = image.data[i + 3]
+          const alpha = imageData[i + 3]
           if (alpha !== 255) {
             throw Error('Unexpected alpha')
           }
-          const rgb = [image.data[i], image.data[i + 1], image.data[i + 2]]
+          const rgb = [imageData[i], imageData[i + 1], imageData[i + 2]]
           const j = (x + y * width) * 3
           const rgbReference = [
             referenceImage.data[j],
@@ -205,7 +208,7 @@ type FileInfo = {
       }
       // Write expected decoder result which is used in decoder tests
       await writeImageData(
-        image,
+        createImageData(imageData, imageWidth, imageHeight),
         `${imageDir}${jpegFile.name}-${
           downScale > 1 ? `scale${downScale}-` : ''
         }expected.png`
@@ -242,7 +245,9 @@ const list2ts = (list: any, indent: string, width = 80): string =>
     .join('\n')
 
 const dqt2ts = (values: QuantizationTable, indent: string) => {
-  const maxLength = Math.max(...Array.from(values.map(s => `${s}`.length)))
+  const maxLength = Math.max(
+    ...Array.from(values.map((s: number) => `${s}`.length))
+  )
   let line = ''
   for (let row = 0; row < 8; row += 1) {
     line += indent + '  '
@@ -263,7 +268,7 @@ const dqt2ts = (values: QuantizationTable, indent: string) => {
   )
 }
 
-const jpegValue2ts = (value: any) =>
+const jpegValue2ts = (value: any): string =>
   Array.isArray(value)
     ? `[${value.map(jpegValue2ts).join(',')}]`
     : typeof value === 'object' && value !== null

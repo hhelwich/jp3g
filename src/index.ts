@@ -1,6 +1,6 @@
 import { version as _version } from '../package.json'
 import { Jpeg, SOS, APP } from './jpeg'
-import { workerFunction, setWorkerCount } from './workers'
+import { workerFunction, setWorkerCount, maxWorkerCount } from './workers'
 import { decodeJpeg } from './jpeg.decode'
 import {
   identity,
@@ -12,10 +12,13 @@ import {
   composeAsync,
   toAsync,
   enablePromise,
+  waitState,
+  Append,
 } from './util'
 import { decodeFrame, DecodeOptions, ImageDataArgs } from './frame.decode'
 
 const { isArray } = Array
+const { max } = Math
 
 // Create variable for correct type in d.ts file (will be removed my minifier)
 const version = _version
@@ -70,6 +73,27 @@ const decodeImage2 = (decodeOptions: DecodeOptions) => (
   decodeImage(jpeg, decodeOptions, callback)
 }
 
+let fnCounter = 0
+
+const [checkFnSlotAvailable, waitFnSlotAvailable] = waitState(
+  () => fnCounter < max(maxWorkerCount, 1) + 1
+)
+
+const trackAsync = <T extends Append<any[], Callback<any>>>(
+  fn: (...args: T) => void
+) => (...args: T): void => {
+  fnCounter += 1
+  checkFnSlotAvailable()
+  const lastIndex = args.length - 1
+  const callback = args[lastIndex]
+  args[lastIndex] = ((error, result) => {
+    fnCounter -= 1
+    checkFnSlotAvailable()
+    callback(error, result)
+  }) as Callback<any>
+  fn(...args)
+}
+
 const create = (jpegData: ArrayBufferLike | Blob | Jpeg, _factor: number) => {
   const toJPEG = (callback: Callback<Jpeg>) => {
     if (!isArray(jpegData)) {
@@ -80,13 +104,15 @@ const create = (jpegData: ArrayBufferLike | Blob | Jpeg, _factor: number) => {
   }
   return {
     scale: (factor: number) => create(jpegData, _factor * factor),
-    toJPEG: enablePromise(toJPEG),
+    toJPEG: enablePromise(trackAsync(toJPEG)),
     toImageData: enablePromise(
-      composeAsync(
-        toJPEG,
+      trackAsync(
         composeAsync(
-          decodeImage2({ downScale: 1 / _factor }),
-          toAsync((args: ImageDataArgs) => createImageData(...args))
+          toJPEG,
+          composeAsync(
+            decodeImage2({ downScale: 1 / _factor }),
+            toAsync((args: ImageDataArgs) => createImageData(...args))
+          )
         )
       )
     ),
@@ -96,6 +122,7 @@ const create = (jpegData: ArrayBufferLike | Blob | Jpeg, _factor: number) => {
 const _jp3g = (jpegData: ArrayBufferLike | Blob | Jpeg) => create(jpegData, 1)
 
 _jp3g.setWorkerCount = setWorkerCount
+_jp3g.waitIdle = waitFnSlotAvailable
 _jp3g.version = version
 
 export default _jp3g

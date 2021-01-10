@@ -30,20 +30,26 @@ export const identity = <T>(a: T): T => a
 /**
  * Compose two asynchronous functions.
  */
-export const composeAsync = <A extends any[], B, C>(
-  fn1: (...as: Append<A, Callback<B>>) => void,
-  fn2: (b: B, callback: Callback<C>) => void
+export const composeAsync = <A extends any[], B extends [] | [D], C, D>(
+  fn1: (...as: Append<A, Callback<D | void>>) => void,
+  fn2: (...bs: Append<B, Callback<C>>) => void
 ) => (...as: Append<A, Callback<C>>): void => {
   const len = as.length - 1
   const args = array(as, 0, len) as A
   const callback = as[len] as Callback<C>
-  fn1(...args, ((error: Error, b: B) => {
+  fn1(...args, ((error: Error, b: D | void) => {
     if (error) {
       ;(callback as any)(error)
     } else {
-      fn2(b, callback)
+      let args2: Append<B, Callback<C>>
+      if (fn2.length === 1) {
+        args2 = [callback] as any
+      } else {
+        args2 = [b, callback] as any
+      }
+      fn2(...args2)
     }
-  }) as Callback<B>)
+  }) as Callback<D | void>)
 }
 
 /**
@@ -163,3 +169,27 @@ export const assureDirectUint8Array = (buffer: Buffer | Uint8Array) =>
   environment === Environment.NodeJs && Buffer.isBuffer(buffer)
     ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.length)
     : buffer
+
+export const waitState = (
+  isState: () => boolean
+): [check: () => void, wait: (callback: Callback<void>) => void] => {
+  const callbacks: Callback<void>[] = []
+  let state = isState()
+  const maybeRunCallback = () => {
+    while (callbacks.length > 0 && state) {
+      const callback = callbacks.shift()!
+      ;(callback as any)()
+    }
+  }
+  const check = () => {
+    state = isState()
+    maybeRunCallback()
+  }
+  return [
+    check,
+    (callback: Callback<void>) => {
+      callbacks.push(callback)
+      maybeRunCallback()
+    },
+  ]
+}
