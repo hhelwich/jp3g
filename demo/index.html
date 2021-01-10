@@ -1,19 +1,52 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>JPEG Decoder Test</title>
-    <style>
-      #canvas {
-        width: 150px;
-        image-rendering: -moz-crisp-edges;
-        image-rendering: pixelated;
-      }
-    </style>
+    <title>JPEG Decoder Demo</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
-    <canvas id="canvas"></canvas>
-    <script src="../dist/jp3g.js"></script>
+    <header>
+      <button onclick="document.getElementById('files').click()">
+        Choose Files
+      </button>
+      <div>
+        <input
+          type="range"
+          id="workerCount"
+          min="0"
+          max="6"
+          oninput="this.nextElementSibling.value = this.value"
+        />
+        <output></output>
+        <label for="workerCount">Workers</label>
+      </div>
+      <div>
+        <input
+          type="range"
+          id="downScale"
+          min="1"
+          max="8"
+          step="7"
+          oninput="this.nextElementSibling.value = this.value"
+        />
+        1/<output></output>
+        <label for="downScale">Scale</label>
+      </div>
+      <input
+        id="files"
+        type="file"
+        accept="image/jpeg"
+        multiple
+        style="display: none"
+      />
+      <canvas id="loader"></canvas>
+    </header>
+    <main></main>
+    <footer></footer>
+    <!--script src="https://polyfill.io/v3/polyfill.min.js?features=Promise"></script-->
+    <script src="../dist/jp3g.min.js"></script>
     <script src="./main.js"></script>
   </body>
 </html>
