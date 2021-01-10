@@ -1,24 +1,29 @@
+import { Append, Callback } from './util';
 /**
- * Asynchronous function that can be called both directly and in a worker.
+ * Type of a message that is sent to the worker in order to call a function.
  */
-declare type WorkerFunction = (...args: any[]) => PromiseLike<any>;
+export declare type MessageToWorker = [callId: number, fnId: number, args: unknown[]];
 /**
- * Extract the type wrapped in a promise type.
+ * Type of a message that is sent back to the main thread by the worker after a
+ * function has been completed in the worker.
  */
-declare type UnwrapPromise<T> = T extends PromiseLike<infer U> ? U : T;
+export declare type MessageFromWorker<T> = [
+    callId: number,
+    errorMessage?: string,
+    result?: T
+];
 /**
- * Returns a fake worker that works in the same thread.
+ * Creates a worker handler that runs a function in a worker.
  */
-export declare const fakeWorker: () => Worker;
+export declare const onMessageToWorker: (postMessageFromWorker: (message: MessageFromWorker<unknown>, transfer?: ArrayBuffer[]) => void) => ({ data: [callId, fnId, args] }: MessageEvent<MessageToWorker>) => void;
+export declare let maxWorkerCount: number;
+declare const waitIdle: (callback: Callback<void>) => void;
+export { waitIdle };
 /**
- * Set zero to any number of workers which should be used to process functions.
+ * Returns an asynchronous function that runs a synchronous function in a worker
+ * pool.
+ * The transfer functions are used to extract `Transferable`s so that they can
+ * be passed to the worker and back by reference.
  */
-export declare const setWorkers: (...workers: Worker[]) => void;
-/**
- * Proxy a function so that it can also be processed in a worker.
- * To pass ArrayBuffers by reference instead of by value, functions must be
- * specified which extract the ArrayBuffers from the function's inputs and
- * outputs.
- */
-export declare const workerFunction: <F extends WorkerFunction>(fn: F, inputTransfer: (args: Parameters<F>) => ArrayBuffer[], outputTransfer: (result: UnwrapPromise<ReturnType<F>>) => ArrayBuffer[]) => F;
-export {};
+export declare const workerFunction: <A extends any[], B>(inputTransfer: (args: A) => ArrayBuffer[], fn: (...args: A) => B, outputTransfer: (result: B) => ArrayBuffer[]) => (...args: [...A, Callback<B>]) => void;
+export declare let setWorkerCount: (workerCount: number) => void;

@@ -8,26 +8,53 @@ export declare const enum Marker {
     SOF0 = 192
 }
 export declare const zigZag: Uint8Array;
+export declare const SOI = "SOI";
+export declare const EOI = "EOI";
+export declare const COM = "COM";
+export declare const APP = "APP";
+export declare const JFIF = "JFIF";
+export declare const DHT = "DHT";
+export declare const DQT = "DQT";
+export declare const SOF = "SOF";
+export declare const SOS = "SOS";
+export declare const enum JFIFUnits {
+    PixelAspectRatio = 0,
+    DotsPerInch = 1,
+    DotsPerCm = 2
+}
 export declare type SOI = {
-    type: 'SOI';
+    type: typeof SOI;
+};
+export declare type JFIF = {
+    type: typeof JFIF;
+    version: [number, number];
+    units: number;
+    density: {
+        x: number;
+        y: number;
+    };
+    thumbnail?: {
+        x: number;
+        y: number;
+        data: Uint8Array;
+    };
 };
 export declare type APP = {
-    type: 'APP';
+    type: typeof APP;
     appType: number;
     data: Uint8Array;
 };
 export declare type COM = {
-    type: 'COM';
+    type: typeof COM;
     text: string;
 };
-export declare type DQT_TABLE = {
-    id: 0 | 1 | 2 | 3;
-    bytes: 1 | 2;
-    values: number[];
-};
+export declare type QuantizationTable = Uint8Array | Uint16Array;
 export declare type DQT = {
-    type: 'DQT';
-    tables: DQT_TABLE[];
+    type: typeof DQT;
+    tables: {
+        id: 0 | 1 | 2 | 3;
+        values: QuantizationTable;
+    }[];
 };
 /**
  * Huffman tree realized as interleaved arrays. The array indices are the code
@@ -48,11 +75,11 @@ export declare type DHT_TABLE = {
     tree: HuffmanTree;
 };
 export declare type DHT = {
-    type: 'DHT';
+    type: typeof DHT;
     tables: DHT_TABLE[];
 };
 export declare type SOF = {
-    type: 'SOF';
+    type: typeof SOF;
     frameType: number;
     /** Sample precision in bits (8, 12). */
     precision: number;
@@ -69,18 +96,23 @@ export declare type SOF = {
          */
         id: number;
         /**
-         * Horizontal sampling (0,1,2,3).
-         * h * v = Number of data units that are used in one MCU for interleaved
+         * Horizontal sampling factor. Can encode/decode integers from 0 to 15 but
+         * only values 1-4 are allowed.
+         * h * v = Number of data units that are used for that component in one MCU
+         * for an interleaved scan.
          */
         h: number;
-        /** Vertical sampling (0,1,2,3) */
+        /**
+         * Vertical sampling factor. Can encode/decode integers from 0 to 15 but
+         * only values 1-4 are allowed.
+         */
         v: number;
         /** The id of the quantization table for this component. */
         qId: number;
     }[];
 };
 export declare type SOS = {
-    type: 'SOS';
+    type: typeof SOS;
     data: Uint8Array;
     components: {
         id: number;
@@ -93,7 +125,7 @@ export declare type SOS = {
     al: number;
 };
 export declare type EOI = {
-    type: 'EOI';
+    type: typeof EOI;
 };
-export declare type Segment = SOI | APP | COM | DQT | DHT | SOF | SOS | EOI;
+export declare type Segment = SOI | JFIF | APP | COM | DQT | DHT | SOF | SOS | EOI;
 export declare type Jpeg = Segment[];

@@ -14,14 +14,21 @@ export declare const prepareScanDecode: (sof: SOF) => {
         blocksPerColumn: number;
     }[];
 };
-export declare const decodeFrame: (jpeg: Jpeg) => ImageData;
-export declare const decodeFns: (data: Uint8Array) => {
-    nextBit: () => number;
-    nextHuffmanByte: (tree: HuffmanTree) => number;
-    nextDcDiff: (huffmanTreeDC: HuffmanTree) => number;
-    nextDc: (huffmanTreeDC: HuffmanTree) => number;
-    getCoeff: (huffmanTreeDC: HuffmanTree, huffmanTreeAC: HuffmanTree) => number[];
+/**
+ * Some old browsers cannot create an `ImageData` in a worker, so we transfer
+ * the parameters of the `ImageData` constructor.
+ */
+export declare type ImageDataArgs = [
+    data: Uint8ClampedArray,
+    width: number,
+    height: number
+];
+export declare type DecodeOptions = {
+    downScale?: number;
 };
+export declare const decodeFrame: (jpeg: Jpeg, { downScale }?: DecodeOptions) => ImageDataArgs;
+export declare const createNextBit: (data: Uint8Array) => () => number;
+export declare const createDecodeQCoeffs: (data: Uint8Array, outQCoeffs: Int16Array) => (lastDc: number, huffmanTreeDC: HuffmanTree, huffmanTreeAC: HuffmanTree) => void;
 /**
  * This function is taken from the JPEG specification. It is used to decode DC
  * coefficients. DC coefficients are coded as differences to the previous DC

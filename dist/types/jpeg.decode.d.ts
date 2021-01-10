@@ -1,6 +1,4 @@
-import { APP, COM, SOF, Jpeg } from './jpeg';
-export declare const decodeAPP: (appType: number, data: Uint8Array) => APP;
-export declare const decodeCOM: (data: Uint8Array) => COM;
+import { SOF, Jpeg } from './jpeg';
 /**
  * Decode SOF (Start of frame) segment
  */
