@@ -9,9 +9,10 @@ canvas {
   max-width: 100%;
 }
 
-#loader {
-  width: 50px;
-  height: 50px;
+#files-icon {
+  width: 56px;
+  height: 56px;
+  cursor: pointer;
 }
 
 #header {
@@ -27,25 +28,6 @@ canvas {
 
 #header * {
   display: inline;
-}
-
-#files {
-  background-color: #69c;
-  width: 56px;
-  height: 56px;
-  cursor: pointer;
-  display: inline-block;
-  line-height: 56px;
-  border-radius: 50%;
-  text-align: center;
-  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
-    0 3px 1px -2px rgba(0, 0, 0, 0.12), 0 1px 5px 0 rgba(0, 0, 0, 0.2);
-}
-
-#files > img {
-  height: 24px;
-  width: 24px;
-  vertical-align: middle;
 }
 
 #main {
