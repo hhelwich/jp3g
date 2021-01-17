@@ -7,7 +7,7 @@ const dataToString = (data: Uint8Array): string =>
 /**
  * Returns true if marker is APP0-APP15 (application-specific data)
  */
-export const isAppMarker = (marker: number) => 0xe0 <= marker && marker <= 0xef
+export const isAppMarker = (marker: number) => 0xdf < marker && marker < 0xf0
 
 /**
  * Returns true if the APP segment is of type APP0 and starts with the given

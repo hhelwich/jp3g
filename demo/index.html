@@ -7,10 +7,11 @@
     <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
-    <header>
-      <button onclick="document.getElementById('files').click()">
-        Choose Files
-      </button>
+    <div id="header">
+      <div>
+        <input type="checkbox" id="downScale" name="downScale" checked />
+        <label for="downScale">Downscale 1/8</label>
+      </div>
       <div>
         <input
           type="range"
@@ -24,28 +25,19 @@
       </div>
       <div>
         <input
-          type="range"
-          id="downScale"
-          min="1"
-          max="8"
-          step="7"
-          oninput="this.nextElementSibling.value = this.value"
+          id="files-input"
+          type="file"
+          accept="image/jpeg"
+          multiple
+          style="display: none"
         />
-        1/<output></output>
-        <label for="downScale">Scale</label>
+        <a id="files" onclick="document.getElementById('files-input').click()">
+          <img src="icons/add.svg" alt="add JPEG images" />
+        </a>
+        <canvas id="loader"></canvas>
       </div>
-      <input
-        id="files"
-        type="file"
-        accept="image/jpeg"
-        multiple
-        style="display: none"
-      />
-      <canvas id="loader"></canvas>
-    </header>
-    <main></main>
-    <footer></footer>
-    <!--script src="https://polyfill.io/v3/polyfill.min.js?features=Promise"></script-->
+    </div>
+    <div id="main"></div>
     <script src="../dist/jp3g.min.js"></script>
     <script src="./main.js"></script>
   </body>

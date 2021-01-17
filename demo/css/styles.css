@@ -1,7 +1,54 @@
+html,
+body {
+  margin: 0px;
+  padding: 0px;
+  background-color: #ccc;
+}
+
 canvas {
   max-width: 100%;
 }
+
 #loader {
   width: 50px;
   height: 50px;
+}
+
+#header {
+  left: 0;
+  width: 100%;
+  background-color: #fff;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  padding: 16px;
+  height: 168px;
+}
+
+#header * {
+  display: inline;
+}
+
+#files {
+  background-color: #69c;
+  width: 56px;
+  height: 56px;
+  cursor: pointer;
+  display: inline-block;
+  line-height: 56px;
+  border-radius: 50%;
+  text-align: center;
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14),
+    0 3px 1px -2px rgba(0, 0, 0, 0.12), 0 1px 5px 0 rgba(0, 0, 0, 0.2);
+}
+
+#files > img {
+  height: 24px;
+  width: 24px;
+  vertical-align: middle;
+}
+
+#main {
+  margin-top: 200px;
+  padding: 16px;
 }

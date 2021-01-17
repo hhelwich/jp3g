@@ -36,7 +36,7 @@ const draw = () => {
   canvas.height = height
   const size = Math.min(width, height)
   const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
-  ctx.fillStyle = '#3498db'
+  ctx.fillStyle = '#69c'
   ctx.translate(width / 2, height / 2)
   const time = new Date()
   ctx.rotate(
@@ -52,10 +52,10 @@ const draw = () => {
 }
 
 let workerCount = 0
-let downScale = 8
+let downScale: number
 
-const $files = document.getElementById('files') as HTMLInputElement
-const $main = document.getElementsByTagName('main')[0]
+const $files = document.getElementById('files-input') as HTMLInputElement
+const $main = document.getElementById('main')
 const $workerCount = document.getElementById('workerCount') as HTMLInputElement
 const $downScale = document.getElementById('downScale') as HTMLInputElement
 
@@ -75,11 +75,13 @@ if (!window.Worker) {
 }
 setWorkerCount()
 
-$downScale.addEventListener('change', () => {
-  downScale = +$downScale.value
-})
-$downScale.value = `${downScale}`
-//$downScale.dispatchEvent(new Event('input'))
+{
+  const downScaleHandler = () => {
+    downScale = $downScale.checked ? 8 : 1
+  }
+  $downScale.addEventListener('change', downScaleHandler)
+  downScaleHandler()
+}
 
 $files.addEventListener(
   'change',
