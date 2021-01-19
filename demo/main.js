@@ -1,5 +1,5 @@
 /// <reference path="../dist/types/index.d.ts" />
-var showImage = function (file, main, downScale, callback) {
+var loadCanvas = function (file, downScale, callback) {
     jp3g(file)
         .scale(1 / downScale)
         .toImageData(function (error, imageData) {
@@ -10,14 +10,13 @@ var showImage = function (file, main, downScale, callback) {
         var canvas = document.createElement('canvas');
         canvas.width = imageData.width;
         canvas.height = imageData.height;
-        main.appendChild(canvas);
         var ctx = canvas.getContext('2d');
         ctx.putImageData(imageData, 0, 0);
-        callback(null, null);
+        callback(null, canvas);
     });
 };
 var imageCount = 0;
-var queuedImageCount = 0;
+var imagesDone = 0;
 var startTime;
 var draw = function () {
     var canvas = document.getElementById('files-icon');
@@ -40,8 +39,8 @@ var draw = function () {
     ctx.rotate((2 * Math.PI * (Date.now() - startTime)) / 12000);
     ctx.beginPath();
     ctx.lineTo(0, 0);
-    var angle = 2 * Math.PI * (queuedImageCount / imageCount);
-    ctx.arc(0, 0, (size / 2) * 0.95, 1.5 * Math.PI - angle, 1.5 * Math.PI);
+    var angle = 2 * Math.PI * (imagesDone / imageCount);
+    ctx.arc(0, 0, (size / 2) * 0.95, 1.5 * Math.PI + angle, 1.5 * Math.PI);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
@@ -50,25 +49,39 @@ var draw = function () {
     ctx.fillRect(-size / 8, -size / 56, size / 4, size / 28);
     requestAnimationFrame(draw);
 };
-var workerCount = 0;
+var workerCount;
 var downScale;
 var $files = document.getElementById('files-input');
 var $main = document.getElementById('main');
 var $workerCount = document.getElementById('workerCount');
 var $downScale = document.getElementById('downScale');
+var $message = document.getElementById('message');
+var messageSeconds = 2;
+var messageCounter = 0;
+var showMessage = function (message) {
+    $message.innerHTML = message;
+    $message.style.display = 'block';
+    var id = ++messageCounter;
+    setTimeout(function () {
+        if (id === messageCounter) {
+            $message.style.display = 'none';
+        }
+    }, messageSeconds * 1000);
+};
+var showWorkerLabel = function () {
+    var count = +$workerCount.value;
+    $workerCount.nextElementSibling.innerHTML = count + " background thread" + (count === 1 ? '' : 's');
+};
 var setWorkerCount = function () {
     workerCount = +$workerCount.value;
     jp3g.setWorkerCount(workerCount);
+    showWorkerLabel();
 };
+$workerCount.addEventListener('input', showWorkerLabel);
 $workerCount.addEventListener('change', setWorkerCount);
 if (!window.Worker) {
     $workerCount.disabled = true;
     $workerCount.value = '0';
-    //$workerCount.dispatchEvent(new Event('input'))
-}
-else {
-    $workerCount.value = "" + workerCount;
-    //$workerCount.dispatchEvent(new Event('input'))
 }
 setWorkerCount();
 {
@@ -77,30 +90,44 @@ setWorkerCount();
     };
     $downScale.addEventListener('change', downScaleHandler);
     downScaleHandler();
+    document.getElementById('files').addEventListener('click', function () {
+        document.getElementById('files-input').click();
+    });
 }
+var filesAddCounter = 0;
 $files.addEventListener('change', function () {
+    var id = ++filesAddCounter;
     var files = $files.files;
     $main.innerHTML = '';
-    queuedImageCount += files.length;
-    imageCount = queuedImageCount;
+    imagesDone = 0;
+    imageCount = files.length;
     startTime = Date.now();
+    var isCurrent = function () { return id === filesAddCounter; };
     var _loop_1 = function (i) {
         var file = files[i];
         jp3g.waitIdle(function () {
-            showImage(file, $main, downScale, function (error) {
-                if (error) {
-                    console.error(error);
-                }
-                queuedImageCount -= 1;
-                if (queuedImageCount === 0) {
-                    imageCount = 0;
-                }
-            });
+            if (isCurrent()) {
+                loadCanvas(file, downScale, function (error, canvas) {
+                    if (isCurrent()) {
+                        if (error) {
+                            showMessage("\u26A0\uFE0F " + error.message);
+                        }
+                        else {
+                            $main.appendChild(canvas);
+                        }
+                        imagesDone += 1;
+                        if (imagesDone === imageCount) {
+                            var duration = Math.round((Date.now() - startTime) / 1000);
+                            showMessage("Done in " + duration + " second" + (duration === 1 ? '' : 's'));
+                        }
+                    }
+                });
+            }
         });
     };
-    for (var i = 0; i < files.length; i += 1) {
+    for (var i = 0; i < imageCount; i += 1) {
         _loop_1(i);
     }
-}, false);
+});
 console.log("Using jp3g " + jp3g.version);
 requestAnimationFrame(draw);

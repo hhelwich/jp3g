@@ -576,7 +576,7 @@
   /**
    * Returns true if marker is APP0-APP15 (application-specific data)
    */
-  var isAppMarker = function (marker) { return 0xe0 <= marker && marker <= 0xef; };
+  var isAppMarker = function (marker) { return 0xdf < marker && marker < 0xf0; };
   /**
    * Returns true if the APP segment is of type APP0 and starts with the given
    * identifier terminated by zero.

@@ -13,15 +13,8 @@
         <label for="downScale">Downscale 1/8</label>
       </div>
       <div>
-        <input
-          type="range"
-          id="workerCount"
-          min="0"
-          max="6"
-          oninput="this.nextElementSibling.value = this.value"
-        />
-        <output></output>
-        <label for="workerCount">Workers</label>
+        <input type="range" id="workerCount" in="0" max="6" value="4" />
+        <label for="workerCount"></label>
       </div>
       <div>
         <input
@@ -31,12 +24,13 @@
           multiple
           style="display: none"
         />
-        <a id="files" onclick="document.getElementById('files-input').click()">
+        <a id="files">
           <canvas id="files-icon" alt="add JPEG images"></canvas>
         </a>
       </div>
     </div>
     <div id="main"></div>
+    <div id="message"></div>
     <script src="../dist/jp3g.min.js"></script>
     <script src="./main.js"></script>
   </body>

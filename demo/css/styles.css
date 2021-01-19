@@ -3,6 +3,7 @@ body {
   margin: 0px;
   padding: 0px;
   background-color: #ccc;
+  font-family: sans-serif;
 }
 
 canvas {
@@ -33,4 +34,18 @@ canvas {
 #main {
   margin-top: 200px;
   padding: 16px;
+}
+
+#message {
+  position: fixed;
+  bottom: 16px;
+  color: #fff;
+  background: #333;
+  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2),
+    0 6px 10px 0 rgba(0, 0, 0, 0.14), 0 1px 18px 0 rgba(0, 0, 0, 0.12);
+  border-radius: 4px;
+  padding: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: none;
 }
