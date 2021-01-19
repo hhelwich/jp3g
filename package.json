@@ -1,5 +1,5 @@
 {
-  "name": "@hhelwich/jpeg-js",
+  "name": "jp3g",
   "version": "0.0.0",
   "description": "JPEG encoding / decoding",
   "keywords": [
@@ -7,7 +7,10 @@
   ],
   "license": "MIT",
   "author": "Hendrik Helwich <hendrik@helwich.de>",
-  "repository": "github:hhelwich/jpeg-js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hhelwich/jp3g.git"
+  },
   "main": "dist/jp3g.min.js",
   "types": "dist/types/index.d.ts",
   "scripts": {
