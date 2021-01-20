@@ -29,7 +29,7 @@ let imagesDone = 0
 let startTime: number
 
 const draw = () => {
-  const canvas = document.getElementById('files-icon') as HTMLCanvasElement
+  const canvas = document.getElementById('files') as HTMLCanvasElement
   const width = canvas.clientWidth
   const height = canvas.clientHeight
   canvas.width = width

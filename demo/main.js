@@ -19,7 +19,7 @@ var imageCount = 0;
 var imagesDone = 0;
 var startTime;
 var draw = function () {
-    var canvas = document.getElementById('files-icon');
+    var canvas = document.getElementById('files');
     var width = canvas.clientWidth;
     var height = canvas.clientHeight;
     canvas.width = width;

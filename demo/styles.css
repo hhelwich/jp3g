@@ -1,7 +1,7 @@
 html,
 body {
-  margin: 0px;
-  padding: 0px;
+  margin: 0;
+  padding: 0;
   background-color: #ccc;
   font-family: sans-serif;
 }
@@ -10,7 +10,7 @@ canvas {
   max-width: 100%;
 }
 
-#files-icon {
+#files {
   width: 56px;
   height: 56px;
   cursor: pointer;
@@ -25,6 +25,7 @@ canvas {
   top: 0;
   padding: 16px;
   height: 168px;
+  box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.4);
 }
 
 #header * {
@@ -34,18 +35,28 @@ canvas {
 #main {
   margin-top: 200px;
   padding: 16px;
+  text-align: center;
 }
 
 #message {
   position: fixed;
-  bottom: 16px;
+  bottom: 0;
   color: #fff;
   background: #333;
-  box-shadow: 0 3px 5px -1px rgba(0, 0, 0, 0.2),
-    0 6px 10px 0 rgba(0, 0, 0, 0.14), 0 1px 18px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.4);
   border-radius: 4px;
   padding: 16px;
-  left: 50%;
-  transform: translateX(-50%);
+  margin: 8px;
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  overflow: hidden;
   display: none;
+}
+
+@media (min-width: 600px) {
+  #message {
+    width: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
