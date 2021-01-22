@@ -52,7 +52,7 @@ var draw = function () {
 var workerCount;
 var downScale;
 var $files = document.getElementById('files-input');
-var $main = document.getElementById('main');
+var $images = document.getElementById('images');
 var $workerCount = document.getElementById('workerCount');
 var $downScale = document.getElementById('downScale');
 var $message = document.getElementById('message');
@@ -70,7 +70,7 @@ var showMessage = function (message) {
 };
 var showWorkerLabel = function () {
     var count = +$workerCount.value;
-    $workerCount.nextElementSibling.innerHTML = count + " background thread" + (count === 1 ? '' : 's');
+    $workerCount.previousElementSibling.innerHTML = count + " Background Thread" + (count === 1 ? '' : 's');
 };
 var setWorkerCount = function () {
     workerCount = +$workerCount.value;
@@ -98,7 +98,7 @@ var filesAddCounter = 0;
 $files.addEventListener('change', function () {
     var id = ++filesAddCounter;
     var files = $files.files;
-    $main.innerHTML = '';
+    $images.innerHTML = '';
     imagesDone = 0;
     imageCount = files.length;
     startTime = Date.now();
@@ -113,7 +113,7 @@ $files.addEventListener('change', function () {
                             showMessage("\u26A0\uFE0F " + error.message);
                         }
                         else {
-                            $main.appendChild(canvas);
+                            $images.appendChild(canvas);
                         }
                         imagesDone += 1;
                         if (imagesDone === imageCount) {

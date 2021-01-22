@@ -6,8 +6,35 @@ body {
   font-family: sans-serif;
 }
 
-canvas {
-  max-width: 100%;
+#control {
+  width: calc(100% - 32px);
+  background-color: #fff;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  padding: 16px;
+  height: 100px;
+  box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.4);
+}
+
+#control > div {
+  max-width: 500px;
+  margin: 0 auto;
+  display: flex;
+}
+
+#control label {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+}
+
+input[type='range'] {
+  padding: 0;
+}
+
+#files-input {
+  display: none;
 }
 
 #files {
@@ -16,26 +43,14 @@ canvas {
   cursor: pointer;
 }
 
-#header {
-  left: 0;
-  width: 100%;
-  background-color: #fff;
-  overflow: hidden;
-  position: fixed;
-  top: 0;
-  padding: 16px;
-  height: 168px;
-  box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.4);
-}
-
-#header * {
-  display: inline;
-}
-
-#main {
-  margin-top: 200px;
+#images {
+  margin-top: 132px;
   padding: 16px;
   text-align: center;
+}
+
+#images > canvas {
+  max-width: 100%;
 }
 
 #message {

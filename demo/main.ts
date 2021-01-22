@@ -64,7 +64,7 @@ let workerCount: number
 let downScale: number
 
 const $files = document.getElementById('files-input') as HTMLInputElement
-const $main = document.getElementById('main')
+const $images = document.getElementById('images')
 const $workerCount = document.getElementById('workerCount') as HTMLInputElement
 const $downScale = document.getElementById('downScale') as HTMLInputElement
 
@@ -84,7 +84,7 @@ const showMessage = (message: string) => {
 
 const showWorkerLabel = () => {
   const count = +$workerCount.value
-  $workerCount.nextElementSibling.innerHTML = `${count} background thread${
+  $workerCount.previousElementSibling.innerHTML = `${count} Background Thread${
     count === 1 ? '' : 's'
   }`
 }
@@ -121,7 +121,7 @@ let filesAddCounter = 0
 $files.addEventListener('change', () => {
   const id = ++filesAddCounter
   const files = $files.files
-  $main.innerHTML = ''
+  $images.innerHTML = ''
   imagesDone = 0
   imageCount = files.length
   startTime = Date.now()
@@ -135,7 +135,7 @@ $files.addEventListener('change', () => {
             if (error) {
               showMessage(`⚠️ ${error.message}`)
             } else {
-              $main.appendChild(canvas)
+              $images.appendChild(canvas)
             }
             imagesDone += 1
             if (imagesDone === imageCount) {
