@@ -10,16 +10,15 @@ const loadCanvas = (
   jp3g(file)
     .scale(1 / downScale)
     .toImageData((error, imageData) => {
-      if (error) {
-        callback(error, null)
-        return
+      let canvas: HTMLCanvasElement
+      if (!error) {
+        canvas = document.createElement('canvas')
+        canvas.width = imageData.width
+        canvas.height = imageData.height
+        const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+        ctx.putImageData(imageData, 0, 0)
       }
-      const canvas = document.createElement('canvas')
-      canvas.width = imageData.width
-      canvas.height = imageData.height
-      const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
-      ctx.putImageData(imageData, 0, 0)
-      callback(null, canvas)
+      callback(error, canvas)
     })
 }
 

@@ -1,17 +1,18 @@
 import { Jpeg } from './jpeg';
 import { Callback } from './util';
-declare const _jp3g: {
-    (jpegData: ArrayBufferLike | Blob | Jpeg): {
-        scale: (factor: number) => any;
-        toJPEG: {
-            (callback: Callback<Jpeg>): void;
-            (): Promise<Jpeg>;
-        };
-        toImageData: {
-            (args_0: Callback<ImageData>): void;
-            (): Promise<ImageData>;
-        };
+declare type Jp3g = {
+    scale: (factor: number) => Jp3g;
+    toJPEG: {
+        (callback: Callback<Jpeg>): void;
+        (): Promise<Jpeg>;
     };
+    toImageData: {
+        (args_0: Callback<ImageData>): void;
+        (): Promise<ImageData>;
+    };
+};
+declare const _jp3g: {
+    (jpegData: ArrayBufferLike | Blob | Jpeg): Jp3g;
     setWorkerCount: (workerCount: number) => void;
     waitIdle: (callback: Callback<void>) => void;
     version: string;

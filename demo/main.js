@@ -3,16 +3,15 @@ var loadCanvas = function (file, downScale, callback) {
     jp3g(file)
         .scale(1 / downScale)
         .toImageData(function (error, imageData) {
-        if (error) {
-            callback(error, null);
-            return;
+        var canvas;
+        if (!error) {
+            canvas = document.createElement('canvas');
+            canvas.width = imageData.width;
+            canvas.height = imageData.height;
+            var ctx = canvas.getContext('2d');
+            ctx.putImageData(imageData, 0, 0);
         }
-        var canvas = document.createElement('canvas');
-        canvas.width = imageData.width;
-        canvas.height = imageData.height;
-        var ctx = canvas.getContext('2d');
-        ctx.putImageData(imageData, 0, 0);
-        callback(null, canvas);
+        callback(error, canvas);
     });
 };
 var imageCount = 0;

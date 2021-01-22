@@ -94,7 +94,22 @@ const trackAsync = <T extends Append<any[], Callback<any>>>(
   fn(...args)
 }
 
-const create = (jpegData: ArrayBufferLike | Blob | Jpeg, _factor: number) => {
+type Jp3g = {
+  scale: (factor: number) => Jp3g
+  toJPEG: {
+    (callback: Callback<Jpeg>): void
+    (): Promise<Jpeg>
+  }
+  toImageData: {
+    (args_0: Callback<ImageData>): void
+    (): Promise<ImageData>
+  }
+}
+
+const create = (
+  jpegData: ArrayBufferLike | Blob | Jpeg,
+  _factor: number
+): Jp3g => {
   const toJPEG = (callback: Callback<Jpeg>) => {
     if (!isArray(jpegData)) {
       composeAsync(toArrayBuffer, decode)(jpegData, callback)
