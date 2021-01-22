@@ -1,6 +1,5 @@
 import { DHT, Marker, HuffmanTree } from './jpeg'
 import { setUint16, setHiLow } from './jpeg.encode'
-import { InvalidJpegError } from './InvalidJpegError'
 
 /**
  * Populate a map of symbols by code lengths for a given huffman tree node and
@@ -47,7 +46,7 @@ export const getHuffmanCodeCounts = (huffmanTable: HuffmanTree) => {
 const assureHuffmanCounts16 = (counts: number[]) => {
   let i = counts.length
   if (i > 16) {
-    throw new InvalidJpegError(`Exceeded maximum code length`)
+    throw Error(`Exceeded maximum code length`)
   }
   for (; i < 16; i += 1) {
     counts.push(0)

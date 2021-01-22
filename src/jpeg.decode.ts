@@ -1,4 +1,3 @@
-import { InvalidJpegError } from './InvalidJpegError'
 import { SOF, Jpeg, Marker, SOS, EOI, SOI } from './jpeg'
 import { decodeDHT } from './huffmanTable.decode'
 import { decodeDQT } from './quantizationTable.decode'
@@ -24,7 +23,7 @@ export const decodeSOF = (frameType: number, data: Uint8Array): SOF => {
   const width = getUint16(data, 3) // Image width in pixels
   const compCount = data[5] // Number of components in the image
   if (data.length !== compCount * 3 + 6) {
-    throw new InvalidJpegError('Invalid segment length')
+    throw Error('Invalid segment length')
   }
   let offset = 6
   const components = []
@@ -74,7 +73,7 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
   jpeg = assureDirectUint8Array(jpeg)
   // JPEG must start with a SOI marker
   if (jpeg[0] !== 0xff || jpeg[1] !== Marker.SOI) {
-    throw new InvalidJpegError('Missing SOI marker')
+    throw Error('Missing SOI marker')
   }
 
   // The last marker in the file must be an EOI, and it must immediately follow
@@ -88,7 +87,7 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
     if (byte !== 0xff) {
       if (offset === segEnd) {
         // First byte of marker must be ff
-        throw new InvalidJpegError('Invalid marker')
+        throw Error('Invalid marker')
       }
       // Set segment start after marker so segStart + segLength === segEnd
       const segStart = ++offset
@@ -138,7 +137,7 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
       } else {
         const segLength = getUint16(jpeg, offset)
         if (segLength < 2) {
-          throw new InvalidJpegError('Invalid segment length')
+          throw Error('Invalid segment length')
         }
         offset = segEnd = segStart + segLength
         const d = jpeg.subarray(segStart + 2, segEnd)
@@ -153,12 +152,12 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
         } else if (isMarkerSOF(byte)) {
           result.push(decodeSOF(byte & 0xf, d))
         } else {
-          throw new InvalidJpegError('Unknown marker')
+          throw Error('Unknown marker')
         }
       }
     }
   }
-  throw new InvalidJpegError('Unexpected end of buffer')
+  throw Error('Unexpected end of buffer')
 }
 
 // Sources:

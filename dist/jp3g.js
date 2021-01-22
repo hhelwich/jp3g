@@ -42,22 +42,6 @@
   OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
   PERFORMANCE OF THIS SOFTWARE.
   ***************************************************************************** */
-  /* global Reflect, Promise */
-
-  var extendStatics = function(d, b) {
-      extendStatics = Object.setPrototypeOf ||
-          ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
-          function (d, b) { for (var p in b) if (Object.prototype.hasOwnProperty.call(b, p)) d[p] = b[p]; };
-      return extendStatics(d, b);
-  };
-
-  function __extends(d, b) {
-      if (typeof b !== "function" && b !== null)
-          throw new TypeError("Class extends value " + String(b) + " is not a constructor or null");
-      extendStatics(d, b);
-      function __() { this.constructor = d; }
-      d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
-  }
 
   /** @deprecated */
   function __spreadArrays() {
@@ -450,19 +434,6 @@
       onmessage = onMessageToWorker(postMessage);
   }
 
-  /**
-   * Indicates invalid format when parsing JPEG
-   */
-  var InvalidJpegError = /** @class */ (function (_super) {
-      __extends(InvalidJpegError, _super);
-      function InvalidJpegError(message) {
-          var _this = _super.call(this, message) || this;
-          Object.setPrototypeOf(_this, InvalidJpegError.prototype);
-          return _this;
-      }
-      return InvalidJpegError;
-  }(Error));
-
   var getUint16 = function (data, offset) {
       return (data[offset] << 8) | data[offset + 1];
   };
@@ -480,7 +451,7 @@
       var transferNodes = [];
       var symbolsEnd = symbols.length;
       if (counts.reduce(function (a, b) { return a + b; }, 0) !== symbolsEnd) {
-          throw new InvalidJpegError('Invalid huffman table');
+          throw Error('Invalid huffman table');
       }
       for (var i = counts.length - 1; i >= 0; i -= 1) {
           var count = counts[i];
@@ -492,7 +463,7 @@
           symbolsEnd -= count;
       }
       if (transferNodes.length > 1) {
-          throw new InvalidJpegError('Invalid huffman table');
+          throw Error('Invalid huffman table');
       }
       return transferNodes[0] || [];
   };
@@ -505,7 +476,7 @@
       var tables = [];
       do {
           if (length - offset < 17) {
-              throw new InvalidJpegError('Invalid segment length');
+              throw Error('Invalid segment length');
           }
           var _a = getHiLow(data[offset++]), cls = _a[0], id = _a[1];
           // Get count of Huffman codes of length 1 to 16
@@ -514,7 +485,7 @@
           // Get the symbols sorted by Huffman code
           var symbolCount = counts.reduce(function (sum, count) { return sum + count; }, 0);
           if (symbolCount > length - offset) {
-              throw new InvalidJpegError('Invalid segment length');
+              throw Error('Invalid segment length');
           }
           var symbols = array(data.subarray(offset, offset + symbolCount));
           offset += symbolCount;
@@ -540,21 +511,21 @@
       var length = data.length;
       do {
           if (length - offset < 1) {
-              throw new InvalidJpegError('invalid segment length');
+              throw Error('invalid segment length');
           }
           // The 4 low-order bits are the table identifier (0, 1, 2, or 3).
           // The 4 high-order bits specify the quanization value size
           // (0 = 1 byte, 1 = 2 bytes).
           var _a = getHiLow(data[offset++]), size = _a[0], id = _a[1];
           if (id < 0 || id > 3) {
-              throw new InvalidJpegError('invalid quantization table identifier');
+              throw Error('invalid quantization table identifier');
           }
           if (size < 0 || size > 1) {
-              throw new InvalidJpegError('invalid quantization value size');
+              throw Error('invalid quantization value size');
           }
           var bytes = (size + 1);
           if (bytes * 64 > length - offset) {
-              throw new InvalidJpegError('invalid segment length');
+              throw Error('invalid segment length');
           }
           var values = new (size ? Uint16Array : Uint8Array)(64);
           var getUint = getUint8or16(size);
@@ -651,7 +622,7 @@
       var width = getUint16(data, 3); // Image width in pixels
       var compCount = data[5]; // Number of components in the image
       if (data.length !== compCount * 3 + 6) {
-          throw new InvalidJpegError('Invalid segment length');
+          throw Error('Invalid segment length');
       }
       var offset = 6;
       var components = [];
@@ -684,7 +655,7 @@
       jpeg = assureDirectUint8Array(jpeg);
       // JPEG must start with a SOI marker
       if (jpeg[0] !== 0xff || jpeg[1] !== 216 /* SOI */) {
-          throw new InvalidJpegError('Missing SOI marker');
+          throw Error('Missing SOI marker');
       }
       // The last marker in the file must be an EOI, and it must immediately follow
       // the compressed data of the last scan in the image.
@@ -696,7 +667,7 @@
           if (byte !== 0xff) {
               if (offset === segEnd) {
                   // First byte of marker must be ff
-                  throw new InvalidJpegError('Invalid marker');
+                  throw Error('Invalid marker');
               }
               // Set segment start after marker so segStart + segLength === segEnd
               var segStart = ++offset;
@@ -747,7 +718,7 @@
               else {
                   var segLength = getUint16(jpeg, offset);
                   if (segLength < 2) {
-                      throw new InvalidJpegError('Invalid segment length');
+                      throw Error('Invalid segment length');
                   }
                   offset = segEnd = segStart + segLength;
                   var d = jpeg.subarray(segStart + 2, segEnd);
@@ -767,12 +738,12 @@
                       result.push(decodeSOF(byte & 0xf, d));
                   }
                   else {
-                      throw new InvalidJpegError('Unknown marker');
+                      throw Error('Unknown marker');
                   }
               }
           }
       }
-      throw new InvalidJpegError('Unexpected end of buffer');
+      throw Error('Unexpected end of buffer');
   };
   // Sources:
   // [1] https://www.w3.org/Graphics/JPEG/itu-t81.pdf

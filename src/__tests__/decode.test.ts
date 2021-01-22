@@ -1,6 +1,5 @@
 import { decodeJpeg, getDiff } from '../jpeg.decode'
 import { encodeJpeg } from '../jpeg.encode'
-import { InvalidJpegError } from '../InvalidJpegError'
 
 /*
 const jpeg8x8 = readImageFile('8x8')
