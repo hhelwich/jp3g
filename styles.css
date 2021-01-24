@@ -1,0 +1,109 @@
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #ccc;
+  font-family: sans-serif;
+}
+
+#control {
+  width: calc(100% - 32px);
+  background-color: #fff;
+  overflow: hidden;
+  position: fixed;
+  top: 0;
+  padding: 16px;
+  height: 120px;
+  box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+}
+
+@media (min-width: 600px) {
+  #control {
+    width: auto;
+    right: 0;
+    border-radius: 0 0 0 2px;
+  }
+}
+
+#control > div {
+  padding: 4px;
+  display: flex;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+#control > div:first-child {
+  justify-content: space-between;
+}
+
+#control label {
+  display: flex;
+  align-items: center;
+}
+
+input[type='range'] {
+  padding: 0;
+}
+
+#files-input {
+  display: none;
+}
+
+#files {
+  font-size: 14px;
+  padding: 8px 12px;
+  cursor: pointer;
+  background-color: #0075fa;
+  color: #fff;
+  border: 0;
+  border-radius: 2px;
+  margin-bottom: 22px;
+}
+
+#files-progress {
+  height: 32px;
+  width: 32px;
+  margin-left: 10px;
+}
+
+#images {
+  margin-top: 152px;
+  padding: 16px;
+  text-align: center;
+}
+
+@media (min-width: 600px) {
+  #images {
+    margin-top: auto;
+  }
+}
+
+#images > * {
+  max-width: 100%;
+}
+
+#message {
+  position: fixed;
+  bottom: 0;
+  color: #fff;
+  background: #333;
+  box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  padding: 16px;
+  margin: 8px;
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  overflow: hidden;
+  display: none;
+}
+
+@media (min-width: 600px) {
+  #message {
+    width: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}

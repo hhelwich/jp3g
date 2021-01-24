@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>JPEG Decoder Demo</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="control">
+      <div>
+        <canvas id="files-progress"></canvas>
+        <input id="files-input" type="file" accept="image/jpeg" multiple />
+        <button id="files">CHOOSE FILES</button>
+      </div>
+      <div>
+        <label for="workerCount"></label>
+        <input id="workerCount" type="range" min="0" max="6" value="4" />
+      </div>
+      <div>
+        <label for="downScale">Downscale 1/8</label>
+        <input id="downScale" type="checkbox" checked />
+      </div>
+    </div>
+    <div id="images"></div>
+    <div id="message"></div>
+    <script src="jp3g.min.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
