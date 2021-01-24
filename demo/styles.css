@@ -13,18 +13,33 @@ body {
   position: fixed;
   top: 0;
   padding: 16px;
-  height: 100px;
+  height: 120px;
   box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+}
+
+@media (min-width: 600px) {
+  #control {
+    width: auto;
+    right: 0;
+    border-radius: 0 0 0 2px;
+  }
 }
 
 #control > div {
-  max-width: 500px;
-  margin: 0 auto;
+  padding: 4px;
   display: flex;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+#control > div:first-child {
+  justify-content: space-between;
 }
 
 #control label {
-  flex-grow: 1;
   display: flex;
   align-items: center;
 }
@@ -38,18 +53,35 @@ input[type='range'] {
 }
 
 #files {
-  width: 56px;
-  height: 56px;
+  font-size: 14px;
+  padding: 8px 12px;
   cursor: pointer;
+  background-color: #0075fa;
+  color: #fff;
+  border: 0;
+  border-radius: 2px;
+  margin-bottom: 22px;
+}
+
+#files-progress {
+  height: 32px;
+  width: 32px;
+  margin-left: 10px;
 }
 
 #images {
-  margin-top: 132px;
+  margin-top: 152px;
   padding: 16px;
   text-align: center;
 }
 
-#images > canvas {
+@media (min-width: 600px) {
+  #images {
+    margin-top: auto;
+  }
+}
+
+#images > * {
   max-width: 100%;
 }
 

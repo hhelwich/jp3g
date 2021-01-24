@@ -9,17 +9,17 @@
   <body>
     <div id="control">
       <div>
-        <label for="downScale">Downscale 1/8</label>
-        <input id="downScale" type="checkbox" checked />
+        <canvas id="files-progress"></canvas>
+        <input id="files-input" type="file" accept="image/jpeg" multiple />
+        <button id="files">CHOOSE FILES</button>
       </div>
       <div>
         <label for="workerCount"></label>
         <input id="workerCount" type="range" min="0" max="6" value="4" />
       </div>
       <div>
-        <label for="files-input">Choose Files</label>
-        <input id="files-input" type="file" accept="image/jpeg" multiple />
-        <canvas id="files" alt="add JPEG images"></canvas>
+        <label for="downScale">Downscale 1/8</label>
+        <input id="downScale" type="checkbox" checked />
       </div>
     </div>
     <div id="images"></div>

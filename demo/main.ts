@@ -28,34 +28,28 @@ let imagesDone = 0
 let startTime: number
 
 const draw = () => {
-  const canvas = document.getElementById('files') as HTMLCanvasElement
+  const canvas = document.getElementById('files-progress') as HTMLCanvasElement
   const width = canvas.clientWidth
   const height = canvas.clientHeight
   canvas.width = width
   canvas.height = height
   const size = Math.min(width, height)
-  const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
-  // Draw filled circle
-  ctx.fillStyle = '#69c'
-  ctx.translate(width / 2, height / 2)
-  ctx.beginPath()
-  ctx.arc(0, 0, size / 2, 0, 2 * Math.PI)
-  ctx.closePath()
-  ctx.fill()
-  // Draw filled progress circle segment
-  ctx.fillStyle = '#fff'
-  ctx.save()
-  ctx.rotate((2 * Math.PI * (Date.now() - startTime)) / 12000)
-  ctx.beginPath()
-  ctx.lineTo(0, 0)
-  const angle = 2 * Math.PI * (imagesDone / imageCount)
-  ctx.arc(0, 0, (size / 2) * 0.95, 1.5 * Math.PI + angle, 1.5 * Math.PI)
-  ctx.closePath()
-  ctx.fill()
-  ctx.restore()
-  // Draw plus icon
-  ctx.fillRect(-size / 56, -size / 8, size / 28, size / 4)
-  ctx.fillRect(-size / 8, -size / 56, size / 4, size / 28)
+
+  if (imagesDone < imageCount) {
+    const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
+    // Draw filled progress circle segment
+    ctx.translate(width / 2, height / 2)
+    ctx.fillStyle = '#0075fa'
+    ctx.save()
+    ctx.rotate((2 * Math.PI * (Date.now() - startTime)) / 12000)
+    ctx.beginPath()
+    ctx.lineTo(0, 0)
+    const angle = 2 * Math.PI * (imagesDone / imageCount)
+    ctx.arc(0, 0, size / 2, 1.5 * Math.PI, 1.5 * Math.PI + angle)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
+  }
   requestAnimationFrame(draw)
 }
 
@@ -84,7 +78,7 @@ const showMessage = (message: string) => {
 const showWorkerLabel = () => {
   const count = +$workerCount.value
   $workerCount.previousElementSibling.innerHTML = `${count} Background Thread${
-    count === 1 ? '' : 's'
+    count === 1 ? '<span style="opacity:0;">s</span>' : 's'
   }`
 }
 
