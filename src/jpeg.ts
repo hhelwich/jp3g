@@ -66,7 +66,7 @@ export type DQT = {
   type: typeof DQT
   tables: {
     id: 0 | 1 | 2 | 3
-    values: QuantizationTable
+    data: QuantizationTable
   }[]
 }
 
@@ -144,4 +144,4 @@ export type EOI = {
 
 export type Segment = SOI | JFIF | APP | COM | DQT | DHT | SOF | SOS | EOI
 
-export type Jpeg = Segment[]
+export type JPEG = Segment[]

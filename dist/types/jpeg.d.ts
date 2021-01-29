@@ -53,7 +53,7 @@ export declare type DQT = {
     type: typeof DQT;
     tables: {
         id: 0 | 1 | 2 | 3;
-        values: QuantizationTable;
+        data: QuantizationTable;
     }[];
 };
 /**
@@ -128,4 +128,4 @@ export declare type EOI = {
     type: typeof EOI;
 };
 export declare type Segment = SOI | JFIF | APP | COM | DQT | DHT | SOF | SOS | EOI;
-export declare type Jpeg = Segment[];
+export declare type JPEG = Segment[];

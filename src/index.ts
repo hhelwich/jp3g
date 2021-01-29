@@ -1,10 +1,9 @@
 import { version as _version } from '../package.json'
-import { Jpeg, SOS, APP } from './jpeg'
+import { JPEG, APP, JFIF, DQT } from './jpeg'
 import { workerFunction, setWorkerCount, maxWorkerCount } from './workers'
 import { decodeJpeg } from './jpeg.decode'
+import { encodeJpeg } from './jpeg.encode'
 import {
-  identity,
-  find,
   createImageData,
   readBlob,
   Callback,
@@ -23,51 +22,78 @@ const { max } = Math
 // Create variable for correct type in d.ts file (will be removed my minifier)
 const version = _version
 
-const getBuffer = (dataContainer: ImageData | SOS | APP): ArrayBufferLike =>
-  dataContainer.data.buffer
+const getBuffer = (dataContainer: {
+  data: Uint8Array | Uint8ClampedArray | Uint16Array
+}): ArrayBuffer => dataContainer.data.buffer
 
-const getJpegBuffer = (jpeg: Jpeg): ArrayBufferLike =>
-  // Find the first SOS segment and return the referenced JPEG input buffer.
-  // This is sufficient because all data segment (APP, SOS) views reference
-  // the same buffer. There is always a SOS segment.
-  getBuffer(
-    find(jpeg, segment => segment.type === APP || segment.type === SOS) as
-      | APP
-      | SOS
-  )
+/**
+ * Return all `ArrayBuffer`s used in the JPEG object.
+ */
+const getJpegBuffers = (jpeg: JPEG): ArrayBuffer[] => {
+  const buffers: ArrayBuffer[] = []
+  let addedMainBuf = false
+  for (const segment of jpeg) {
+    if (segment.type === DQT) {
+      for (const table of segment.tables) {
+        buffers.push(getBuffer(table))
+      }
+    } else if (!addedMainBuf) {
+      if (segment.type === JFIF && segment.thumbnail) {
+        buffers.push(getBuffer(segment.thumbnail))
+        addedMainBuf = true
+      } else if (segment.type === APP || segment.type === 'SOS') {
+        buffers.push(getBuffer(segment))
+        addedMainBuf = true
+      }
+    }
+  }
+  return buffers
+}
 
-const toArrayBuffer = (
-  data: ArrayBufferLike | Blob,
-  callback: Callback<ArrayBufferLike>
+const toUint8Array = (
+  data: ArrayBuffer | Blob | Uint8Array,
+  callback: Callback<Uint8Array>
 ) => {
   if (isBlob(data)) {
     readBlob(data, callback)
   } else {
-    callback(null, data)
+    if (data instanceof ArrayBuffer) {
+      data = new Uint8Array(data)
+    }
+    callback(null, data as Uint8Array)
   }
 }
 
 const decode: (
-  jpegData: ArrayBufferLike,
-  callback: Callback<Jpeg>
+  jpegData: Uint8Array,
+  callback: Callback<JPEG>
 ) => void = workerFunction(
-  identity,
-  (jpegData: ArrayBufferLike) => decodeJpeg(new Uint8Array(jpegData)),
-  jpeg => [getJpegBuffer(jpeg)]
+  ([jpegData]) => [jpegData.buffer],
+  decodeJpeg,
+  getJpegBuffers
+)
+
+const encode: (
+  jpeg: JPEG,
+  callback: Callback<Uint8Array>
+) => void = workerFunction(
+  ([jpeg]) => getJpegBuffers(jpeg),
+  encodeJpeg,
+  jpegUint8 => [jpegUint8.buffer]
 )
 
 const decodeImage: (
-  jpeg: Jpeg,
+  jpeg: JPEG,
   options: DecodeOptions,
   callback: Callback<ImageDataArgs>
 ) => void = workerFunction(
-  ([jpeg]) => [getJpegBuffer(jpeg)],
+  ([jpeg]) => getJpegBuffers(jpeg),
   decodeFrame,
   ([data]) => [data.buffer]
 ) as any
 
 const decodeImage2 = (decodeOptions: DecodeOptions) => (
-  jpeg: Jpeg,
+  jpeg: JPEG,
   callback: Callback<ImageDataArgs>
 ) => {
   decodeImage(jpeg, decodeOptions, callback)
@@ -94,11 +120,15 @@ const trackAsync = <T extends Append<any[], Callback<any>>>(
   fn(...args)
 }
 
-type Jp3g = {
-  scale: (factor: number) => Jp3g
-  toJPEG: {
-    (callback: Callback<Jpeg>): void
-    (): Promise<Jpeg>
+type JP3G = {
+  scale: (factor: number) => JP3G
+  toObject: {
+    (callback: Callback<JPEG>): void
+    (): Promise<JPEG>
+  }
+  toBuffer: {
+    (callback: Callback<Uint8Array>): void
+    (): Promise<Uint8Array>
   }
   toImageData: {
     (args_0: Callback<ImageData>): void
@@ -107,23 +137,31 @@ type Jp3g = {
 }
 
 const create = (
-  jpegData: ArrayBufferLike | Blob | Jpeg,
+  jpegData: Uint8Array | ArrayBuffer | Blob | JPEG,
   _factor: number
-): Jp3g => {
-  const toJPEG = (callback: Callback<Jpeg>) => {
-    if (!isArray(jpegData)) {
-      composeAsync(toArrayBuffer, decode)(jpegData, callback)
-    } else {
+): JP3G => {
+  const toObject = (callback: Callback<JPEG>) => {
+    if (isArray(jpegData)) {
       callback(null, jpegData)
+    } else {
+      composeAsync(toUint8Array, decode)(jpegData, callback)
+    }
+  }
+  const toBuffer = (callback: Callback<Uint8Array>) => {
+    if (isArray(jpegData)) {
+      encode(jpegData, callback)
+    } else {
+      toUint8Array(jpegData, callback)
     }
   }
   return {
     scale: (factor: number) => create(jpegData, _factor * factor),
-    toJPEG: enablePromise(trackAsync(toJPEG)),
+    toObject: enablePromise(trackAsync(toObject)),
+    toBuffer: enablePromise(trackAsync(toBuffer)),
     toImageData: enablePromise(
       trackAsync(
         composeAsync(
-          toJPEG,
+          toObject,
           composeAsync(
             decodeImage2({ downScale: 1 / _factor }),
             toAsync((args: ImageDataArgs) => createImageData(...args))
@@ -134,13 +172,16 @@ const create = (
   }
 }
 
-const _jp3g = (jpegData: ArrayBufferLike | Blob | Jpeg) => create(jpegData, 1)
+const _jp3g = (jpegData: Uint8Array | ArrayBuffer | Blob | JPEG) =>
+  create(jpegData, 1)
 
 _jp3g.setWorkerCount = setWorkerCount
 _jp3g.waitIdle = waitFnSlotAvailable
 _jp3g.version = version
 
 export default _jp3g
+
+export { JPEG }
 
 declare global {
   const jp3g: typeof _jp3g

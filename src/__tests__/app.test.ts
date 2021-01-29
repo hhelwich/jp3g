@@ -1,6 +1,6 @@
 import { decodeAPP } from '../app.decode'
-import { encodeJFIF } from '../app.encode'
-import { JFIFUnits } from '../jpeg'
+import { encodeJFIF, getJfifLength } from '../app.encode'
+import { JFIF, JFIFUnits } from '../jpeg'
 
 const jfifWithoutThumbnailData = new Uint8Array([
   74,
@@ -51,18 +51,16 @@ describe('APP', () => {
       })
     })
     it('encodes JFIF segment without thumbnail', () => {
-      const buffer = new Uint8Array(14)
-      encodeJFIF(
-        {
-          type: 'JFIF',
-          version: [1, 1],
-          units: JFIFUnits.DotsPerInch,
-          density: { x: 72, y: 72 },
-        },
-        0,
-        buffer
-      )
-      expect(buffer).toEqual(jfifWithoutThumbnailData)
+      const jfif: JFIF = {
+        type: 'JFIF',
+        version: [1, 1],
+        units: JFIFUnits.DotsPerInch,
+        density: { x: 72, y: 72 },
+      }
+      const buffer = new Uint8Array(getJfifLength(jfif))
+      encodeJFIF(jfif, 0, buffer)
+      expect(buffer.slice(0, 4)).toEqual(new Uint8Array([0xff, 0xe0, 0, 16]))
+      expect(buffer.slice(4)).toEqual(jfifWithoutThumbnailData)
     })
     it('decodes JFIF segment with thumbnail data', () => {
       const jfif = decodeAPP(0, jfifWithThumbnailData)
@@ -79,23 +77,24 @@ describe('APP', () => {
       })
     })
     it('encodes JFIF segment with thumbnail data', () => {
-      const buffer = new Uint8Array(17)
-      encodeJFIF(
-        {
-          type: 'JFIF',
-          version: [1, 1],
-          units: JFIFUnits.DotsPerInch,
-          density: { x: 72, y: 72 },
-          thumbnail: {
-            x: 2,
-            y: 3,
-            data: new Uint8Array([4, 5, 6]),
-          },
+      const thumbnail = new Uint8Array([4, 5, 6])
+      const jfif: JFIF = {
+        type: 'JFIF',
+        version: [1, 1],
+        units: JFIFUnits.DotsPerInch,
+        density: { x: 72, y: 72 },
+        thumbnail: {
+          x: 2,
+          y: 3,
+          data: thumbnail,
         },
-        0,
-        buffer
+      }
+      const buffer = new Uint8Array(getJfifLength(jfif))
+      encodeJFIF(jfif, 0, buffer)
+      expect(buffer.slice(0, 4)).toEqual(
+        new Uint8Array([0xff, 0xe0, 0, 16 + thumbnail.length])
       )
-      expect(buffer).toEqual(jfifWithThumbnailData)
+      expect(buffer.slice(4)).toEqual(jfifWithThumbnailData)
     })
   })
 })

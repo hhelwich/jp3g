@@ -1,4 +1,4 @@
-import { HuffmanTree, Jpeg, SOF } from './jpeg';
+import { HuffmanTree, JPEG, SOF } from './jpeg';
 export declare const prepareScanDecode: (sof: SOF) => {
     maxH: number;
     maxV: number;
@@ -26,7 +26,7 @@ export declare type ImageDataArgs = [
 export declare type DecodeOptions = {
     downScale?: number;
 };
-export declare const decodeFrame: (jpeg: Jpeg, { downScale }?: DecodeOptions) => ImageDataArgs;
+export declare const decodeFrame: (jpeg: JPEG, { downScale }?: DecodeOptions) => ImageDataArgs;
 export declare const createNextBit: (data: Uint8Array) => () => number;
 export declare const createDecodeQCoeffs: (data: Uint8Array, outQCoeffs: Int16Array) => (lastDc: number, huffmanTreeDC: HuffmanTree, huffmanTreeAC: HuffmanTree) => void;
 /**

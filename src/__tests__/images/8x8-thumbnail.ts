@@ -1,6 +1,6 @@
-import { JFIFUnits, Jpeg } from '../../jpeg'
+import { JFIFUnits, JPEG } from '../../jpeg'
 
-const jpeg: Jpeg = [
+const jpeg: JPEG = [
   { type: 'SOI' },
   {
     type: 'JFIF',
@@ -14,7 +14,7 @@ const jpeg: Jpeg = [
       {
         id: 0,
         // prettier-ignore
-        values: new Uint8Array([
+        data: new Uint8Array([
            8,  6,  5,  8, 12, 20, 26, 31,
            6,  6,  7, 10, 13, 29, 30, 28,
            7,  7,  8, 12, 20, 29, 35, 28,
@@ -33,7 +33,7 @@ const jpeg: Jpeg = [
       {
         id: 1,
         // prettier-ignore
-        values: new Uint8Array([
+        data: new Uint8Array([
            9,  9, 12, 24, 50, 50, 50, 50,
            9, 11, 13, 33, 50, 50, 50, 50,
           12, 13, 28, 50, 50, 50, 50, 50,

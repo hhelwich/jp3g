@@ -26,4 +26,8 @@ export { waitIdle };
  * be passed to the worker and back by reference.
  */
 export declare const workerFunction: <A extends any[], B>(inputTransfer: (args: A) => ArrayBuffer[], fn: (...args: A) => B, outputTransfer: (result: B) => ArrayBuffer[]) => (...args: [...A, Callback<B>]) => void;
-export declare let setWorkerCount: (workerCount: number) => void;
+/**
+ * Set zero to any number of workers which should be used to process
+ * functions.
+ */
+export declare const setWorkerCount: (workerCount: number) => void;

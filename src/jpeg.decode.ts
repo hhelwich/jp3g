@@ -1,9 +1,9 @@
-import { SOF, Jpeg, Marker, SOS, EOI, SOI } from './jpeg'
+import { SOF, JPEG, Marker, SOS, EOI, SOI } from './jpeg'
 import { decodeDHT } from './huffmanTable.decode'
 import { decodeDQT } from './quantizationTable.decode'
 import { getHiLow, getUint16 } from './common.decode'
 import { decodeAPP, isAppMarker, decodeCOM } from './app.decode'
-import { assureDirectUint8Array } from './util'
+import { subarray } from './util'
 
 const isRestartMarker = (marker: number) => 0xd0 <= marker && marker <= 0xd7
 
@@ -69,8 +69,7 @@ export const getDiff = (partialDiff: number, bitLength: number) =>
  *
  * @param jpeg
  */
-export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
-  jpeg = assureDirectUint8Array(jpeg)
+export const decodeJpeg = (jpeg: Uint8Array): JPEG => {
   // JPEG must start with a SOI marker
   if (jpeg[0] !== 0xff || jpeg[1] !== Marker.SOI) {
     throw Error('Missing SOI marker')
@@ -78,7 +77,7 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
 
   // The last marker in the file must be an EOI, and it must immediately follow
   // the compressed data of the last scan in the image.
-  const result: Jpeg = [{ type: SOI }]
+  const result: JPEG = [{ type: SOI }]
   let segEnd = 2 // End of the current segment
   const { length } = jpeg
 
@@ -124,7 +123,7 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
               specEnd,
               ah,
               al,
-              data: jpeg.subarray(segStart + headerLength, segEnd),
+              data: subarray(jpeg, segStart + headerLength, segEnd),
             })
             continue outer
           }
@@ -140,7 +139,7 @@ export const decodeJpeg = (jpeg: Uint8Array): Jpeg => {
           throw Error('Invalid segment length')
         }
         offset = segEnd = segStart + segLength
-        const d = jpeg.subarray(segStart + 2, segEnd)
+        const d = subarray(jpeg, segStart + 2, segEnd)
         if (byte === Marker.DQT) {
           result.push(decodeDQT(d))
         } else if (byte === Marker.DHT) {

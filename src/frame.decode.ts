@@ -1,4 +1,4 @@
-import { DHT, DQT, EOI, HuffmanTree, Jpeg, SOF, SOS, zigZag } from './jpeg'
+import { DHT, DQT, EOI, HuffmanTree, JPEG, SOF, SOS, zigZag } from './jpeg'
 import { invDctQuantizedScaled } from './dctQuantizedScaled.decode'
 
 const { min, max, ceil, round } = Math
@@ -55,7 +55,7 @@ export type DecodeOptions = {
 }
 
 export const decodeFrame = (
-  jpeg: Jpeg,
+  jpeg: JPEG,
   { downScale = 1 }: DecodeOptions = {}
 ): ImageDataArgs => {
   const huffmanTables: [HuffmanTree[], HuffmanTree[]] = [[], []]
@@ -178,7 +178,7 @@ export const decodeFrame = (
             for (let k = 0; k < componentCount; k += 1) {
               const component = components[k]
               const { h, v, qId } = frameComponents[component.id]
-              const qTable = qTables[qId].values
+              const qTable = qTables[qId].data
               for (let i = 0; i < v; i += 1) {
                 for (let j = 0; j < h; j += 1) {
                   // Decode data unit

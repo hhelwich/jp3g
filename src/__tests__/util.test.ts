@@ -4,6 +4,7 @@ import {
   composeAsync,
   toAsync,
   waitState,
+  subarray,
 } from '../util'
 import { promisify } from './util/testUtil'
 
@@ -139,23 +140,6 @@ describe('util', () => {
       await fn()
       expect(callIds).toEqual([1, 2])
     })
-    it('can be used with two effects (only callback params)', async () => {
-      const callIds: number[] = []
-      const _fn = composeAsync(
-        (callback: Callback<void>) => {
-          callIds.push(1)
-          ;(callback as any)()
-        },
-        (callback: Callback<void>) => {
-          callIds.push(2)
-          ;(callback as any)()
-        }
-      )
-      const fn: () => Promise<void> = promisify(_fn)
-      expect(callIds).toEqual([])
-      await fn()
-      expect(callIds).toEqual([1, 2])
-    })
     it('can have multiple inputs for first function', async () => {
       const _fn = composeAsync(
         (x: number, s: string, callback: Callback<boolean>) => {
@@ -255,6 +239,38 @@ describe('util', () => {
         callIds.push(1)
       })
       expect(callIds).toEqual([1])
+    })
+  })
+  describe('subarray', () => {
+    // [3, 5, 7, 11]
+    const buf = new Uint8Array([2, 3, 5, 7, 11, 42]).subarray(1, 5)
+    const nodeBuf = Buffer.from([2, 3, 5, 7, 11, 42]).subarray(1, 5)
+    it('its indices behave like slice/subarray for direct Uint8Array', () => {
+      expect(subarray(buf, 1, 2)).toEqual(new Uint8Array([5]))
+      expect(subarray(buf, 1, 3)).toEqual(new Uint8Array([5, 7]))
+      expect(subarray(buf, 2, 4)).toEqual(new Uint8Array([7, 11]))
+    })
+    it('its indices behave like slice/subarray for node.js Buffer', () => {
+      expect(subarray(nodeBuf, 1, 2)).toEqual(new Uint8Array([5]))
+      expect(subarray(nodeBuf, 1, 3)).toEqual(new Uint8Array([5, 7]))
+      expect(subarray(nodeBuf, 2, 4)).toEqual(new Uint8Array([7, 11]))
+    })
+    it('can omit end parameter', () => {
+      expect(subarray(buf, 1)).toEqual(new Uint8Array([5, 7, 11]))
+      expect(subarray(buf, 3)).toEqual(new Uint8Array([11]))
+    })
+    it('is a view on the same ArrayBuffer for direct Uint8Array', () => {
+      expect(subarray(buf, 1, 2).buffer).toBe(buf.buffer)
+    })
+    it('is a view on the same ArrayBuffer for node.js Buffer', () => {
+      expect(subarray(nodeBuf, 1, 2).buffer).toBe(nodeBuf.buffer)
+    })
+    it('always returns direct Uint8Array', () => {
+      for (const b of [buf, nodeBuf]) {
+        const view = subarray(b, 1, 2)
+        expect(view).toBeInstanceOf(Uint8Array)
+        expect(view).not.toBeInstanceOf(Buffer)
+      }
     })
   })
 })

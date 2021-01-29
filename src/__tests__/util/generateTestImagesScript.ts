@@ -4,7 +4,7 @@ import { decodeJpeg } from '../../jpeg.decode'
 import { decodeFrame } from '../../frame.decode'
 import { distanceRgb } from './distanceRgb'
 import sharp from 'sharp'
-import { JFIFUnits, Jpeg, QuantizationTable } from '../../jpeg'
+import { JFIFUnits, JPEG, QuantizationTable } from '../../jpeg'
 import { createImageData } from '../../util'
 
 const imageDir = 'src/__tests__/images/'
@@ -244,16 +244,16 @@ const list2ts = (list: any, indent: string, width = 80): string =>
     .reverse()
     .join('\n')
 
-const dqt2ts = (values: QuantizationTable, indent: string) => {
+const dqt2ts = (data: QuantizationTable, indent: string) => {
   const maxLength = Math.max(
-    ...Array.from(values.map((s: number) => `${s}`.length))
+    ...Array.from(data.map((s: number) => `${s}`.length))
   )
   let line = ''
   for (let row = 0; row < 8; row += 1) {
     line += indent + '  '
     const vals: string[] = []
     for (let col = 0; col < 8; col += 1) {
-      let nbr = `${values[col + row * 8]}`
+      let nbr = `${data[col + row * 8]}`
       while (nbr.length < maxLength) {
         nbr = ' ' + nbr
       }
@@ -263,7 +263,7 @@ const dqt2ts = (values: QuantizationTable, indent: string) => {
   }
   return (
     `\n${indent}// prettier-ignore\n` +
-    `${indent}values: new ${values.constructor.name}([\n` +
+    `${indent}data: new ${data.constructor.name}([\n` +
     `${line}${indent}])`
   )
 }
@@ -274,7 +274,11 @@ const jpegValue2ts = (value: any): string =>
     : typeof value === 'object' && value !== null
     ? `{${Object.entries(value)
         .map(([key, value]: [any, any]) => {
-          if (key === 'data' && value instanceof Uint8Array) {
+          if (
+            key === 'data' &&
+            value instanceof Uint8Array &&
+            value.length !== 64
+          ) {
             return (
               '\n' +
               [
@@ -285,7 +289,7 @@ const jpegValue2ts = (value: any): string =>
               ].join('\n')
             )
           }
-          if (key === 'values' && value?.length === 64) {
+          if (key === 'data' && value?.length === 64) {
             return dqt2ts(value, '        ')
           }
           if (key === 'units') {
@@ -304,12 +308,12 @@ const jpegValue2ts = (value: any): string =>
         .join(',')}}`
     : JSON.stringify(value)
 
-const jpeg2ts = (jpeg: Jpeg) => `
+const jpeg2ts = (jpeg: JPEG) => `
   import { ${
     jpeg.find(({ type }) => type === 'JFIF') ? 'JFIFUnits, ' : ''
-  }Jpeg } from '../../jpeg'
+  }JPEG } from '../../jpeg'
 
-  const jpeg: Jpeg = ${jpegValue2ts(jpeg)}
+  const jpeg: JPEG = ${jpegValue2ts(jpeg)}
 
   export default jpeg`
 

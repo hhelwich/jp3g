@@ -20,7 +20,7 @@ const { slice } = Array.prototype
 export const isFunction = (f: unknown): f is Function => typeof f === 'function'
 
 export const isBlob = (b: unknown): b is Blob =>
-  environment !== Environment.NodeJs && b instanceof Blob
+  typeof Blob !== 'undefined' && b instanceof Blob
 
 /**
  * Just the identity function.
@@ -30,26 +30,20 @@ export const identity = <T>(a: T): T => a
 /**
  * Compose two asynchronous functions.
  */
-export const composeAsync = <A extends any[], B extends [] | [D], C, D>(
-  fn1: (...as: Append<A, Callback<D | void>>) => void,
-  fn2: (...bs: Append<B, Callback<C>>) => void
+export const composeAsync = <A extends any[], B, C>(
+  fn1: (...as: Append<A, Callback<B>>) => void,
+  fn2: (b: B, callback: Callback<C>) => void
 ) => (...as: Append<A, Callback<C>>): void => {
   const len = as.length - 1
   const args = array(as, 0, len) as A
   const callback = as[len] as Callback<C>
-  fn1(...args, ((error: Error, b: D | void) => {
+  fn1(...args, ((error: Error, b: B) => {
     if (error) {
       ;(callback as any)(error)
     } else {
-      let args2: Append<B, Callback<C>>
-      if (fn2.length === 1) {
-        args2 = [callback] as any
-      } else {
-        args2 = [b, callback] as any
-      }
-      fn2(...args2)
+      fn2(b, callback)
     }
-  }) as Callback<D | void>)
+  }) as Callback<B>)
 }
 
 /**
@@ -150,25 +144,16 @@ export const createImageData = ((): ((
 })()
 
 /**
- * Read a `Blob` to memory and return an `ArrayBuffer`.
+ * Read a `Blob` to memory and return an `Uint8Array`.
  */
-export const readBlob = (blob: Blob, callback: Callback<ArrayBuffer>) => {
+export const readBlob = (blob: Blob, callback: Callback<Uint8Array>) => {
   const fileReader = new FileReader()
   fileReader.onload = () => {
-    callback(undefined, fileReader.result as ArrayBuffer)
+    callback(undefined, new Uint8Array(fileReader.result as ArrayBuffer))
   }
   fileReader.onerror = callback as any
   fileReader.readAsArrayBuffer(blob)
 }
-
-/**
- * Converts a node.js Buffer which is a subclass of Uint8Array to a Uint8Array
- * sharing its memory. Returns a given direct Uint8Array.
- */
-export const assureDirectUint8Array = (buffer: Buffer | Uint8Array) =>
-  environment === Environment.NodeJs && Buffer.isBuffer(buffer)
-    ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.length)
-    : buffer
 
 export const waitState = (
   isState: () => boolean
@@ -193,3 +178,15 @@ export const waitState = (
     },
   ]
 }
+
+/**
+ * Returns a new view on the undelaying `ArrayBuffer` but returns a direct
+ * `Uint8Array` also for node.js `Buffer`s.
+ * Indices behave the same way like `Array#slice()` and `Uint8Array#subarray()`.
+ */
+export const subarray = (buffer: Uint8Array, start: number, end?: number) =>
+  new Uint8Array(
+    buffer.buffer,
+    buffer.byteOffset + start,
+    (end ?? buffer.byteLength) - start
+  )

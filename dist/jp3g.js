@@ -67,13 +67,8 @@
   var slice = Array.prototype.slice;
   var isFunction = function (f) { return typeof f === 'function'; };
   var isBlob = function (b) {
-      return environment !== 2 /* NodeJs */ && b instanceof Blob;
+      return typeof Blob !== 'undefined' && b instanceof Blob;
   };
-  /**
-   * Just the identity function.
-   */
-  var identity = function (a) { return a; };
-  //TODO revert to simpler version
   /**
    * Compose two asynchronous functions.
    */
@@ -90,14 +85,7 @@
                   callback(error);
               }
               else {
-                  var args2 = void 0;
-                  if (fn2.length === 1) {
-                      args2 = [callback];
-                  }
-                  else {
-                      args2 = [b, callback];
-                  }
-                  fn2.apply(void 0, args2);
+                  fn2(b, callback);
               }
           })]));
   }; };
@@ -153,17 +141,6 @@
    */
   var array = function (iterable, start, end) { return slice.call(iterable, start, end); };
   /**
-   * Use instead of `Array.find` to prevent problems with old browsers.
-   */
-  var find = function (xs, predicate) {
-      for (var _i = 0, xs_1 = xs; _i < xs_1.length; _i++) {
-          var x = xs_1[_i];
-          if (predicate(x)) {
-              return x;
-          }
-      }
-  };
-  /**
    * Like `ImageData` constructor but also works in ancient browsers like IE11
    * with the following differences if used in this old environments:
    * - A new buffer is created for the data
@@ -188,24 +165,15 @@
       }
   })();
   /**
-   * Read a `Blob` to memory and return an `ArrayBuffer`.
+   * Read a `Blob` to memory and return an `Uint8Array`.
    */
   var readBlob = function (blob, callback) {
       var fileReader = new FileReader();
       fileReader.onload = function () {
-          callback(undefined, fileReader.result);
+          callback(undefined, new Uint8Array(fileReader.result));
       };
       fileReader.onerror = callback;
       fileReader.readAsArrayBuffer(blob);
-  };
-  /**
-   * Converts a node.js Buffer which is a subclass of Uint8Array to a Uint8Array
-   * sharing its memory. Returns a given direct Uint8Array.
-   */
-  var assureDirectUint8Array = function (buffer) {
-      return environment === 2 /* NodeJs */ && Buffer.isBuffer(buffer)
-          ? new Uint8Array(buffer.buffer, buffer.byteOffset, buffer.length)
-          : buffer;
   };
   var waitState = function (isState) {
       var callbacks = [];
@@ -227,6 +195,14 @@
               maybeRunCallback();
           },
       ];
+  };
+  /**
+   * Returns a new view on the undelaying `ArrayBuffer` but returns a direct
+   * `Uint8Array` also for node.js `Buffer`s.
+   * Indices behave the same way like `Array#slice()` and `Uint8Array#subarray()`.
+   */
+  var subarray = function (buffer, start, end) {
+      return new Uint8Array(buffer.buffer, buffer.byteOffset + start, (end !== null && end !== void 0 ? end : buffer.byteLength) - start);
   };
 
   var _a;
@@ -408,7 +384,16 @@
           tryDistributeCalls();
       });
   };
-  var setWorkerCount;
+  /**
+   * Set zero to any number of workers which should be used to process
+   * functions.
+   */
+  var setWorkerCount = function (workerCount) {
+      if (window.Worker && maxWorkerCount !== workerCount) {
+          maxWorkerCount = workerCount;
+          tryDistributeCalls();
+      }
+  };
   if (environment === 0 /* BrowserMain */) {
       /**
        * The URL of this script. It gets a little hacky for browsers not supporting
@@ -418,16 +403,6 @@
           var scripts = document.getElementsByTagName('script');
           return scripts[scripts.length - 1];
       })()).src;
-      /**
-       * Set zero to any number of workers which should be used to process
-       * functions.
-       */
-      setWorkerCount = function (workerCount) {
-          if (window.Worker && maxWorkerCount !== workerCount) {
-              maxWorkerCount = workerCount;
-              tryDistributeCalls();
-          }
-      };
   }
   else if (environment === 1 /* BrowserWorker */) {
       // Register function call handler in the worker.
@@ -480,14 +455,14 @@
           }
           var _a = getHiLow(data[offset++]), cls = _a[0], id = _a[1];
           // Get count of Huffman codes of length 1 to 16
-          var counts = array(data.subarray(offset, offset + 16));
+          var counts = array(subarray(data, offset, offset + 16));
           offset += 16;
           // Get the symbols sorted by Huffman code
           var symbolCount = counts.reduce(function (sum, count) { return sum + count; }, 0);
           if (symbolCount > length - offset) {
               throw Error('Invalid segment length');
           }
-          var symbols = array(data.subarray(offset, offset + symbolCount));
+          var symbols = array(subarray(data, offset, offset + symbolCount));
           offset += symbolCount;
           var tree = getHuffmanTree({ counts: counts, symbols: symbols });
           tables.push({
@@ -527,12 +502,12 @@
           if (bytes * 64 > length - offset) {
               throw Error('invalid segment length');
           }
-          var values = new (size ? Uint16Array : Uint8Array)(64);
+          var tableData = new (size ? Uint16Array : Uint8Array)(64);
           var getUint = getUint8or16(size);
           for (var i = 0; i < 64; i += 1) {
-              values[zigZag[i]] = getUint(data, i * bytes + offset);
+              tableData[zigZag[i]] = getUint(data, i * bytes + offset);
           }
-          tables.push({ id: id, values: values });
+          tables.push({ id: id, data: tableData });
           offset += bytes * 64;
       } while (offset !== length);
       return {
@@ -558,7 +533,7 @@
           var appType = _a.appType, data = _a.data;
           return appType === 0 &&
               data[length] === 0 &&
-              dataToString(data.subarray(0, length)) === identifier;
+              dataToString(subarray(data, 0, length)) === identifier;
       };
   };
   /**
@@ -599,7 +574,7 @@
           jfif.thumbnail = {
               x: thumbnailX,
               y: thumbnailY,
-              data: data.subarray(14),
+              data: subarray(data, 14),
           };
       }
       return jfif;
@@ -652,7 +627,6 @@
    * @param jpeg
    */
   var decodeJpeg = function (jpeg) {
-      jpeg = assureDirectUint8Array(jpeg);
       // JPEG must start with a SOI marker
       if (jpeg[0] !== 0xff || jpeg[1] !== 216 /* SOI */) {
           throw Error('Missing SOI marker');
@@ -703,7 +677,7 @@
                               specEnd: specEnd,
                               ah: ah,
                               al: al,
-                              data: jpeg.subarray(segStart + headerLength, segEnd),
+                              data: subarray(jpeg, segStart + headerLength, segEnd),
                           });
                           continue outer;
                       }
@@ -721,7 +695,7 @@
                       throw Error('Invalid segment length');
                   }
                   offset = segEnd = segStart + segLength;
-                  var d = jpeg.subarray(segStart + 2, segEnd);
+                  var d = subarray(jpeg, segStart + 2, segEnd);
                   if (byte === 219 /* DQT */) {
                       result.push(decodeDQT(d));
                   }
@@ -747,6 +721,287 @@
   };
   // Sources:
   // [1] https://www.w3.org/Graphics/JPEG/itu-t81.pdf
+
+  var setUint16 = function (data, offset, value) {
+      data[offset++] = value >> 8;
+      data[offset++] = value & 0xff;
+      return offset;
+  };
+  var setHiLow = function (high, low) { return (high << 4) | low; };
+
+  /**
+   * Populate a map of symbols by code lengths for a given huffman tree node and
+   * all its children
+   */
+  var getHuffmanNodeCodeCounts = function (node, codeLength, symbolsOfLengths) {
+      if (typeof node === 'number') {
+          var symbolsOfLength = symbolsOfLengths[codeLength];
+          if (symbolsOfLength == null) {
+              symbolsOfLength = symbolsOfLengths[codeLength] = [];
+          }
+          symbolsOfLength.push(node);
+      }
+      else if (node != null) {
+          getHuffmanNodeCodeCounts(node[0], codeLength + 1, symbolsOfLengths);
+          getHuffmanNodeCodeCounts(node[1], codeLength + 1, symbolsOfLengths);
+      }
+  };
+  /**
+   * Return counts of huffman codes starting with length 1 and the 1-byte symbols
+   * sorted by huffman code for a given huffman tree
+   */
+  var getHuffmanCodeCounts = function (huffmanTable) {
+      var symbolsOfLengths = [];
+      var counts = [];
+      var symbols = [];
+      getHuffmanNodeCodeCounts(huffmanTable, -1, symbolsOfLengths);
+      for (var i = 0; i < symbolsOfLengths.length; i += 1) {
+          var symbolsOfLength = symbolsOfLengths[i];
+          if (symbolsOfLength == null) {
+              counts[i] = 0;
+          }
+          else {
+              counts[i] = symbolsOfLength.length;
+              symbols.push.apply(symbols, symbolsOfLength);
+          }
+      }
+      return { counts: counts, symbols: symbols };
+  };
+  var assureHuffmanCounts16 = function (counts) {
+      var i = counts.length;
+      if (i > 16) {
+          throw Error("Exceeded maximum code length");
+      }
+      for (; i < 16; i += 1) {
+          counts.push(0);
+      }
+  };
+  /**
+   * Returns the number of symbols in the given huffman node and its children
+   */
+  var getHuffmanNodeSize = function (node) {
+      return node == null
+          ? 0
+          : typeof node === 'number'
+              ? 1
+              : getHuffmanNodeSize(node[0]) + getHuffmanNodeSize(node[1]);
+  };
+  /**
+   * Returns the number of bytes needed to encode the given DHT segment
+   */
+  var getDhtLength = function (_a) {
+      var tables = _a.tables;
+      return tables.reduce(function (len, _a) {
+          var tree = _a.tree;
+          return len + getHuffmanNodeSize(tree) + 17;
+      }, 4);
+  };
+  var encodeDHT = function (segment, offset, buffer) {
+      buffer[offset++] = 0xff;
+      buffer[offset++] = 196 /* DHT */;
+      offset = setUint16(buffer, offset, getDhtLength(segment) - 2);
+      for (var _i = 0, _a = segment.tables; _i < _a.length; _i++) {
+          var _b = _a[_i], cls = _b.cls, id = _b.id, tree = _b.tree;
+          buffer[offset++] = setHiLow(cls, id);
+          var _c = getHuffmanCodeCounts(tree), counts = _c.counts, symbols = _c.symbols;
+          assureHuffmanCounts16(counts);
+          buffer.set(counts, offset);
+          offset += 16;
+          buffer.set(symbols, offset);
+          offset += symbols.length;
+      }
+      return offset;
+  };
+
+  var getDqtLength = function (dqt) {
+      return dqt.tables.reduce(function (length, _a) {
+          var data = _a.data;
+          return length + data.byteLength + 1;
+      }, 4);
+  };
+  var setUint8or16 = function (size) {
+      return size
+          ? setUint16
+          : function (data, offset, value) {
+              data[offset++] = value;
+              return offset;
+          };
+  };
+  var encodeDQT = function (dqt, offset, buffer) {
+      buffer[offset++] = 0xff;
+      buffer[offset++] = 219 /* DQT */;
+      var length = getDqtLength(dqt) - 2;
+      var tables = dqt.tables;
+      offset = setUint16(buffer, offset, length);
+      for (var _i = 0, tables_1 = tables; _i < tables_1.length; _i++) {
+          var _a = tables_1[_i], id = _a.id, data = _a.data;
+          var size = (data.BYTES_PER_ELEMENT - 1);
+          buffer[offset++] = setHiLow(size, id);
+          var setUint = setUint8or16(size);
+          for (var i = 0; i < 64; i += 1) {
+              offset = setUint(buffer, offset, data[zigZag[i]]);
+          }
+      }
+      return offset;
+  };
+
+  /**
+   * Set given string to a buffer.
+   */
+  var setStringToBuffer = function (str, offset, buffer) {
+      for (var i = 0; i < str.length; i += 1) {
+          buffer[offset++] = str.charCodeAt(i);
+      }
+      return offset;
+  };
+  /**
+   * Encode a comment segment.
+   */
+  var encodeCOM = function (segment, offset, buffer) {
+      buffer[offset++] = 0xff;
+      buffer[offset++] = 254 /* COM */;
+      var length = segment.text.length;
+      offset = setUint16(buffer, offset, length + 2);
+      return setStringToBuffer(segment.text, offset, buffer);
+  };
+  /**
+   * Encode an APP segment
+   */
+  var encodeAPP = function (segment, offset, buffer) {
+      buffer[offset++] = 0xff;
+      buffer[offset++] = 0xe0 | segment.appType;
+      var length = segment.data.length;
+      offset = setUint16(buffer, offset, length + 2);
+      buffer.set(segment.data, offset);
+      return offset + length;
+  };
+  var jfifStr = JFIF + "\0";
+  var getJfifLength = function (segment) { var _a, _b; return ((_b = (_a = segment.thumbnail) === null || _a === void 0 ? void 0 : _a.data.length) !== null && _b !== void 0 ? _b : 0) + 18; };
+  /**
+   * Encode a JFIF APP0 segment.
+   */
+  var encodeJFIF = function (jfif, offset, buffer) {
+      var data = new Uint8Array(getJfifLength(jfif) - 4);
+      var version = jfif.version, units = jfif.units, density = jfif.density, thumbnail = jfif.thumbnail;
+      var offset2 = setStringToBuffer(jfifStr, 0, data);
+      data[offset2++] = version[0];
+      data[offset2++] = version[1];
+      data[offset2++] = units;
+      offset2 = setUint16(data, offset2, density.x);
+      offset2 = setUint16(data, offset2, density.y);
+      if (thumbnail) {
+          data[offset2++] = thumbnail.x;
+          data[offset2++] = thumbnail.y;
+          data.set(thumbnail.data, offset2);
+      }
+      else {
+          setUint16(data, offset2, 0);
+      }
+      return encodeAPP({ type: 'APP', appType: 0, data: data }, offset, buffer);
+  };
+
+  var createBuffer = function (size) { return new Uint8Array(size); };
+  var getSofLength = function (sof) { return 10 + sof.components.length * 3; };
+  var getSosLength = function (sos) {
+      return sos.components.length * 2 + 8 + sos.data.length;
+  };
+  var segmentLength = function (segment) {
+      switch (segment.type) {
+          case SOI:
+          case EOI:
+              return 2;
+          case APP:
+              return segment.data.length + 4;
+          case JFIF:
+              return getJfifLength(segment);
+          case COM:
+              return segment.text.length + 4;
+          case DQT:
+              return getDqtLength(segment);
+          case SOF:
+              return getSofLength(segment);
+          case DHT:
+              return getDhtLength(segment);
+          case SOS:
+              return getSosLength(segment);
+      }
+  };
+  var encodeSOF = function (segment, offset, buffer) {
+      buffer[offset++] = 0xff;
+      buffer[offset++] = 192 /* SOF0 */ | segment.frameType;
+      offset = setUint16(buffer, offset, getSofLength(segment) - 2);
+      buffer[offset++] = segment.precision;
+      offset = setUint16(buffer, offset, segment.height);
+      offset = setUint16(buffer, offset, segment.width);
+      buffer[offset++] = segment.components.length;
+      for (var _i = 0, _a = segment.components; _i < _a.length; _i++) {
+          var component = _a[_i];
+          buffer[offset++] = component.id;
+          buffer[offset++] = setHiLow(component.h, component.v);
+          buffer[offset++] = component.qId;
+      }
+      return offset;
+  };
+  var encodeSOS = function (segment, offset, buffer) {
+      buffer[offset++] = 0xff;
+      buffer[offset++] = 218 /* SOS */;
+      var length = segment.components.length * 2 + 6;
+      offset = setUint16(buffer, offset, length);
+      buffer[offset++] = segment.components.length;
+      for (var _i = 0, _a = segment.components; _i < _a.length; _i++) {
+          var _b = _a[_i], id = _b.id, dcId = _b.dcId, acId = _b.acId;
+          buffer[offset++] = id;
+          buffer[offset++] = setHiLow(dcId, acId);
+      }
+      buffer[offset++] = segment.specStart;
+      buffer[offset++] = segment.specEnd;
+      buffer[offset++] = setHiLow(segment.ah, segment.al);
+      buffer.set(segment.data, offset);
+      return offset + segment.data.length;
+  };
+  var encodeSegment = function (segment, offset, buffer) {
+      switch (segment.type) {
+          case SOI:
+              buffer[offset++] = 0xff;
+              buffer[offset++] = 216 /* SOI */;
+              break;
+          case JFIF: {
+              offset = encodeJFIF(segment, offset, buffer);
+              break;
+          }
+          case APP: {
+              offset = encodeAPP(segment, offset, buffer);
+              break;
+          }
+          case COM: {
+              offset = encodeCOM(segment, offset, buffer);
+              break;
+          }
+          case DQT:
+              return encodeDQT(segment, offset, buffer);
+          case SOF:
+              return encodeSOF(segment, offset, buffer);
+          case DHT:
+              return encodeDHT(segment, offset, buffer);
+          case SOS:
+              return encodeSOS(segment, offset, buffer);
+          case EOI:
+              buffer[offset++] = 0xff;
+              buffer[offset++] = 217 /* EOI */;
+              break;
+      }
+      return offset;
+  };
+  var encodeJpeg = function (jpeg) {
+      var size = jpeg.reduce(function (sum, segment) { return sum + segmentLength(segment); }, 0);
+      var buffer = createBuffer(size);
+      var offset = 0;
+      for (var _i = 0, jpeg_1 = jpeg; _i < jpeg_1.length; _i++) {
+          var segment = jpeg_1[_i];
+          offset = encodeSegment(segment, offset, buffer);
+      }
+      return buffer;
+  };
 
   // mx := sqrt(2) * cos((x / 16) * PI)
   var m1 = 1.3870398453221475;
@@ -933,7 +1188,7 @@
                           for (var k = 0; k < componentCount; k += 1) {
                               var component = components[k];
                               var _j = frameComponents_1[component.id], h = _j.h, v = _j.v, qId = _j.qId;
-                              var qTable = qTables[qId].values;
+                              var qTable = qTables[qId].data;
                               for (var i = 0; i < v; i += 1) {
                                   for (var j = 0; j < h; j += 1) {
                                       // Decode data unit
@@ -1144,27 +1399,56 @@
   var max$1 = Math.max;
   // Create variable for correct type in d.ts file (will be removed my minifier)
   var version$1 = version;
-  var getBuffer = function (dataContainer) {
-      return dataContainer.data.buffer;
+  var getBuffer = function (dataContainer) { return dataContainer.data.buffer; };
+  /**
+   * Return all `ArrayBuffer`s used in the JPEG object.
+   */
+  var getJpegBuffers = function (jpeg) {
+      var buffers = [];
+      var addedMainBuf = false;
+      for (var _i = 0, jpeg_1 = jpeg; _i < jpeg_1.length; _i++) {
+          var segment = jpeg_1[_i];
+          if (segment.type === DQT) {
+              for (var _a = 0, _b = segment.tables; _a < _b.length; _a++) {
+                  var table = _b[_a];
+                  buffers.push(getBuffer(table));
+              }
+          }
+          else if (!addedMainBuf) {
+              if (segment.type === JFIF && segment.thumbnail) {
+                  buffers.push(getBuffer(segment.thumbnail));
+                  addedMainBuf = true;
+              }
+              else if (segment.type === APP || segment.type === 'SOS') {
+                  buffers.push(getBuffer(segment));
+                  addedMainBuf = true;
+              }
+          }
+      }
+      return buffers;
   };
-  var getJpegBuffer = function (jpeg) {
-      // Find the first SOS segment and return the referenced JPEG input buffer.
-      // This is sufficient because all data segment (APP, SOS) views reference
-      // the same buffer. There is always a SOS segment.
-      return getBuffer(find(jpeg, function (segment) { return segment.type === APP || segment.type === SOS; }));
-  };
-  var toArrayBuffer = function (data, callback) {
+  var toUint8Array = function (data, callback) {
       if (isBlob(data)) {
           readBlob(data, callback);
       }
       else {
+          if (data instanceof ArrayBuffer) {
+              data = new Uint8Array(data);
+          }
           callback(null, data);
       }
   };
-  var decode = workerFunction(identity, function (jpegData) { return decodeJpeg(new Uint8Array(jpegData)); }, function (jpeg) { return [getJpegBuffer(jpeg)]; });
+  var decode = workerFunction(function (_a) {
+      var jpegData = _a[0];
+      return [jpegData.buffer];
+  }, decodeJpeg, getJpegBuffers);
+  var encode = workerFunction(function (_a) {
+      var jpeg = _a[0];
+      return getJpegBuffers(jpeg);
+  }, encodeJpeg, function (jpegUint8) { return [jpegUint8.buffer]; });
   var decodeImage = workerFunction(function (_a) {
       var jpeg = _a[0];
-      return [getJpegBuffer(jpeg)];
+      return getJpegBuffers(jpeg);
   }, decodeFrame, function (_a) {
       var data = _a[0];
       return [data.buffer];
@@ -1191,21 +1475,32 @@
       fn.apply(void 0, args);
   }; };
   var create = function (jpegData, _factor) {
-      var toJPEG = function (callback) {
-          if (!isArray(jpegData)) {
-              composeAsync(toArrayBuffer, decode)(jpegData, callback);
+      var toObject = function (callback) {
+          if (isArray(jpegData)) {
+              callback(null, jpegData);
           }
           else {
-              callback(null, jpegData);
+              composeAsync(toUint8Array, decode)(jpegData, callback);
+          }
+      };
+      var toBuffer = function (callback) {
+          if (isArray(jpegData)) {
+              encode(jpegData, callback);
+          }
+          else {
+              toUint8Array(jpegData, callback);
           }
       };
       return {
           scale: function (factor) { return create(jpegData, _factor * factor); },
-          toJPEG: enablePromise(trackAsync(toJPEG)),
-          toImageData: enablePromise(trackAsync(composeAsync(toJPEG, composeAsync(decodeImage2({ downScale: 1 / _factor }), toAsync(function (args) { return createImageData.apply(void 0, args); }))))),
+          toObject: enablePromise(trackAsync(toObject)),
+          toBuffer: enablePromise(trackAsync(toBuffer)),
+          toImageData: enablePromise(trackAsync(composeAsync(toObject, composeAsync(decodeImage2({ downScale: 1 / _factor }), toAsync(function (args) { return createImageData.apply(void 0, args); }))))),
       };
   };
-  var _jp3g = function (jpegData) { return create(jpegData, 1); };
+  var _jp3g = function (jpegData) {
+      return create(jpegData, 1);
+  };
   _jp3g.setWorkerCount = setWorkerCount;
   _jp3g.waitIdle = waitFnSlotAvailable;
   _jp3g.version = version$1;

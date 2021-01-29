@@ -1,4 +1,3 @@
-/// <reference types="node" />
 export declare type Head<T extends any[]> = T extends [...infer H, any] ? H : never;
 export declare type Last<T extends any[]> = T extends [...infer H, infer L] ? L : never;
 export declare type Prepend<I, T extends any[]> = [I, ...T];
@@ -20,7 +19,7 @@ export declare const identity: <T>(a: T) => T;
 /**
  * Compose two asynchronous functions.
  */
-export declare const composeAsync: <A extends any[], B extends [] | [D], C, D>(fn1: (...as: [...A, Callback<void | D>]) => void, fn2: (...bs: [...B, Callback<C>]) => void) => (...as: [...A, Callback<C>]) => void;
+export declare const composeAsync: <A extends any[], B, C>(fn1: (...as: [...A, Callback<B>]) => void, fn2: (b: B, callback: Callback<C>) => void) => (...as: [...A, Callback<C>]) => void;
 /**
  * Lift synchronous function to asynchronous function.
  */
@@ -52,12 +51,13 @@ export declare const find: <T>(xs: T[], predicate: (x: T) => boolean) => T;
  */
 export declare const createImageData: (data: Uint8ClampedArray, width: number, height: number) => ImageData;
 /**
- * Read a `Blob` to memory and return an `ArrayBuffer`.
+ * Read a `Blob` to memory and return an `Uint8Array`.
  */
-export declare const readBlob: (blob: Blob, callback: Callback<ArrayBuffer>) => void;
-/**
- * Converts a node.js Buffer which is a subclass of Uint8Array to a Uint8Array
- * sharing its memory. Returns a given direct Uint8Array.
- */
-export declare const assureDirectUint8Array: (buffer: Buffer | Uint8Array) => Uint8Array | Buffer;
+export declare const readBlob: (blob: Blob, callback: Callback<Uint8Array>) => void;
 export declare const waitState: (isState: () => boolean) => [check: () => void, wait: (callback: Callback<void>) => void];
+/**
+ * Returns a new view on the undelaying `ArrayBuffer` but returns a direct
+ * `Uint8Array` also for node.js `Buffer`s.
+ * Indices behave the same way like `Array#slice()` and `Uint8Array#subarray()`.
+ */
+export declare const subarray: (buffer: Uint8Array, start: number, end?: number) => Uint8Array;

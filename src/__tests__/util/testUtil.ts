@@ -1,5 +1,6 @@
 import fs from 'fs'
 import sharp from 'sharp'
+import { JPEG } from '../../jpeg'
 
 const { abs } = Math
 
@@ -41,7 +42,7 @@ export const getExpectedImageData = async (
   }
 }
 
-export const getExpectedJpeg = async (fileName: string) =>
+export const getExpectedJpeg = async (fileName: string): Promise<JPEG> =>
   (await import(`../images/${fileName}`)).default
 
 /**
@@ -116,3 +117,22 @@ export const sleep = (ms?: number) =>
   })
 
 export const getTime = () => process.hrtime.bigint()
+
+/**
+ * Get all ArrayBuffers used in a JPEG object.
+ */
+export const getJpegArrayBuffers = (jpeg: JPEG): ArrayBuffer[] => {
+  const buffers: Set<ArrayBuffer> = new Set()
+  const iterate = (obj: any) => {
+    Object.keys(obj).forEach(key => {
+      const child = obj[key]
+      if (child instanceof Uint8Array) {
+        buffers.add(child.buffer)
+      } else if (typeof child === 'object') {
+        iterate(child)
+      }
+    })
+  }
+  iterate(jpeg)
+  return Array.from(buffers)
+}

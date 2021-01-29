@@ -235,7 +235,16 @@ export const workerFunction = <A extends any[], B>(
   }) as any
 }
 
-export let setWorkerCount: (workerCount: number) => void
+/**
+ * Set zero to any number of workers which should be used to process
+ * functions.
+ */
+export const setWorkerCount = (workerCount: number) => {
+  if (window.Worker && maxWorkerCount !== workerCount) {
+    maxWorkerCount = workerCount
+    tryDistributeCalls()
+  }
+}
 
 if (environment === Environment.BrowserMain) {
   /**
@@ -249,17 +258,6 @@ if (environment === Environment.BrowserMain) {
       return scripts[scripts.length - 1]
     })()
   ).src
-
-  /**
-   * Set zero to any number of workers which should be used to process
-   * functions.
-   */
-  setWorkerCount = (workerCount: number) => {
-    if (window.Worker && maxWorkerCount !== workerCount) {
-      maxWorkerCount = workerCount
-      tryDistributeCalls()
-    }
-  }
 } else if (environment === Environment.BrowserWorker) {
   // Register function call handler in the worker.
   onmessage = onMessageToWorker(postMessage as any)

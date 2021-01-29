@@ -1,5 +1,5 @@
 import { APP, COM, JFIF, Marker } from './jpeg'
-import { setUint16 } from './jpeg.encode'
+import { setUint16 } from './common.encode'
 
 /**
  * Set given string to a buffer.
@@ -36,26 +36,27 @@ export const encodeAPP = (segment: APP, offset: number, buffer: Uint8Array) => {
 
 const jfifStr = `${JFIF}\0`
 
+export const getJfifLength = (segment: JFIF) =>
+  (segment.thumbnail?.data.length ?? 0) + 18
+
 /**
  * Encode a JFIF APP0 segment.
  */
-export const encodeJFIF = (
-  { version, units, density, thumbnail }: JFIF,
-  offset: number,
-  buffer: Uint8Array
-) => {
-  offset = setStringToBuffer(jfifStr, offset, buffer)
-  buffer[offset++] = version[0]
-  buffer[offset++] = version[1]
-  buffer[offset++] = units
-  offset = setUint16(buffer, offset, density.x)
-  offset = setUint16(buffer, offset, density.y)
+export const encodeJFIF = (jfif: JFIF, offset: number, buffer: Uint8Array) => {
+  const data = new Uint8Array(getJfifLength(jfif) - 4)
+  const { version, units, density, thumbnail } = jfif
+  let offset2 = setStringToBuffer(jfifStr, 0, data)
+  data[offset2++] = version[0]
+  data[offset2++] = version[1]
+  data[offset2++] = units
+  offset2 = setUint16(data, offset2, density.x)
+  offset2 = setUint16(data, offset2, density.y)
   if (thumbnail) {
-    buffer[offset++] = thumbnail.x
-    buffer[offset++] = thumbnail.y
-    buffer.set(thumbnail.data, offset)
-    return offset + thumbnail.data.length
+    data[offset2++] = thumbnail.x
+    data[offset2++] = thumbnail.y
+    data.set(thumbnail.data, offset2)
   } else {
-    return setUint16(buffer, offset, 0)
+    setUint16(data, offset2, 0)
   }
+  return encodeAPP({ type: 'APP', appType: 0, data }, offset, buffer)
 }

@@ -8,7 +8,7 @@ import { decodeFrame } from '../frame.decode'
 
 describe('images', () => {
   it('8x8.jpg decodes to expected image', async () => {
-    const jpegData = getJpegBuffer('8x8')
+    const jpegData = new Uint8Array(getJpegBuffer('8x8'))
     const jpeg = decodeJpeg(jpegData)
     expect(jpeg).toEqual(await getExpectedJpeg('8x8'))
     const imageData = decodeFrame(jpeg)
@@ -19,7 +19,7 @@ describe('images', () => {
     ).toBe(0)
   })
   it('8x16.jpg decodes to expected image', async () => {
-    const jpegData = getJpegBuffer('8x16')
+    const jpegData = new Uint8Array(getJpegBuffer('8x16'))
     const jpeg = decodeJpeg(jpegData)
     expect(jpeg).toEqual(await getExpectedJpeg('8x16'))
     const imageData = decodeFrame(jpeg)
@@ -40,7 +40,7 @@ describe('images', () => {
     ).toBe(0)
   })
   it('16x8.jpg decodes to expected image', async () => {
-    const jpegData = getJpegBuffer('16x8')
+    const jpegData = new Uint8Array(getJpegBuffer('16x8'))
     const jpeg = decodeJpeg(jpegData)
     expect(jpeg).toEqual(await getExpectedJpeg('16x8'))
     const imageData = decodeFrame(jpeg)
@@ -56,7 +56,7 @@ describe('images', () => {
     */
   })
   it('16x16.jpg decodes to expected image', async () => {
-    const jpegData = getJpegBuffer('16x16')
+    const jpegData = new Uint8Array(getJpegBuffer('16x16'))
     const jpeg = decodeJpeg(jpegData)
     expect(jpeg).toEqual(await getExpectedJpeg('16x16'))
     const imageData = decodeFrame(jpeg)
@@ -71,7 +71,9 @@ describe('images', () => {
   })
 
   it('32x32-subsampling-221221-mcu-2x2-expected.jpg decodes to expected image', async () => {
-    const jpegData = getJpegBuffer('32x32-subsampling-221221-mcu-2x2')
+    const jpegData = new Uint8Array(
+      getJpegBuffer('32x32-subsampling-221221-mcu-2x2')
+    )
     const jpeg = decodeJpeg(jpegData)
     expect(jpeg).toEqual(
       await getExpectedJpeg('32x32-subsampling-221221-mcu-2x2')
@@ -91,7 +93,9 @@ describe('images', () => {
   })
 
   it('35x35-subsampling-122111-partial-mcu-3x3-expected.jpg decodes to expected image', async () => {
-    const jpegData = getJpegBuffer('35x35-subsampling-122111-partial-mcu-3x3')
+    const jpegData = new Uint8Array(
+      getJpegBuffer('35x35-subsampling-122111-partial-mcu-3x3')
+    )
     const jpeg = decodeJpeg(jpegData)
     expect(jpeg).toEqual(
       await getExpectedJpeg('35x35-subsampling-122111-partial-mcu-3x3')

@@ -1,6 +1,6 @@
 import {
   Marker,
-  Jpeg,
+  JPEG,
   Segment,
   SOF,
   SOS,
@@ -14,15 +14,8 @@ import {
 } from './jpeg'
 import { getDhtLength, encodeDHT } from './huffmanTable.encode'
 import { encodeDQT, getDqtLength } from './quantizationTable.encode'
-import { encodeAPP, encodeCOM } from './app.encode'
-
-export const setUint16 = (data: Uint8Array, offset: number, value: number) => {
-  data[offset++] = value >> 8
-  data[offset++] = value & 0xff
-  return offset
-}
-
-export const setHiLow = (high: number, low: number) => (high << 4) | low
+import { encodeAPP, encodeCOM, encodeJFIF, getJfifLength } from './app.encode'
+import { setUint16, setHiLow } from './common.encode'
 
 const createBuffer = (size: number) => new Uint8Array(size)
 
@@ -38,7 +31,7 @@ const segmentLength = (segment: Segment): number => {
     case APP:
       return segment.data.length + 4
     case JFIF:
-      return (segment.thumbnail?.data.length ?? 0) + 14
+      return getJfifLength(segment)
     case COM:
       return segment.text.length + 4
     case DQT:
@@ -95,6 +88,10 @@ const encodeSegment = (
       buffer[offset++] = 0xff
       buffer[offset++] = Marker.SOI
       break
+    case JFIF: {
+      offset = encodeJFIF(segment, offset, buffer)
+      break
+    }
     case APP: {
       offset = encodeAPP(segment, offset, buffer)
       break
@@ -119,7 +116,7 @@ const encodeSegment = (
   return offset
 }
 
-export const encodeJpeg = (jpeg: Jpeg): Uint8Array => {
+export const encodeJpeg = (jpeg: JPEG): Uint8Array => {
   const size = jpeg.reduce((sum, segment) => sum + segmentLength(segment), 0)
   const buffer = createBuffer(size)
   let offset = 0

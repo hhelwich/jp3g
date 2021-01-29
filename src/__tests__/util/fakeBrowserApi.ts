@@ -3,6 +3,32 @@
 }
 ;(global as any).document = { currentScript: '' }
 
+class FakeBlob {
+  constructor(public source: ArrayBuffer | Uint8Array | Error) {}
+}
+
+export const fakeBlob = (source: ArrayBuffer | Uint8Array | Error) =>
+  (new FakeBlob(source) as any) as Blob
+;(global as any).FileReader = class {
+  result?: ArrayBuffer
+  onload?: () => void
+  onerror?: (error: any) => void
+  readAsArrayBuffer({ source }: FakeBlob) {
+    setTimeout(() => {
+      if (source instanceof Uint8Array) {
+        source = new Uint8Array(source).buffer
+      }
+      if (source instanceof ArrayBuffer) {
+        this.result = source
+        this.onload?.()
+      } else {
+        this.onerror?.(source)
+      }
+    })
+  }
+}
+;(global as any).Blob = FakeBlob
+
 import {
   setWorkerCount,
   workerFunction,
@@ -55,7 +81,7 @@ export const workerMock = {
     }
   }
   onmessage?: (event: MessageEvent<MessageFromWorker<any>>) => void
-  postMessage(message: MessageToWorker, inputTransfer: ArrayBufferLike[]) {
+  postMessage(message: MessageToWorker, inputTransfer: ArrayBuffer[]) {
     const startTime = getTime()
     this._assureAlive()
     setTimeout(() => {
@@ -68,7 +94,7 @@ export const workerMock = {
     this._terminated = true
   }
   private _onmessage: (
-    info: { startTime: bigint; inputTransfer: ArrayBufferLike[] },
+    info: { startTime: bigint; inputTransfer: ArrayBuffer[] },
     event: MessageEvent<MessageToWorker>
   ) => void
   private _terminated = false

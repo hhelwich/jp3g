@@ -3,7 +3,7 @@ import {
   workerFunction,
   workerMock,
   waitIdle,
-} from './util/workerPolyfill'
+} from './util/fakeBrowserApi'
 import { promisify } from 'util'
 import { identity } from '../util'
 import { getTime, range } from './util/testUtil'

@@ -26,12 +26,14 @@ export const decodeDQT = (data: Uint8Array): DQT => {
     if (bytes * 64 > length - offset) {
       throw Error('invalid segment length')
     }
-    const values: QuantizationTable = new (size ? Uint16Array : Uint8Array)(64)
+    const tableData: QuantizationTable = new (size ? Uint16Array : Uint8Array)(
+      64
+    )
     const getUint = getUint8or16(size)
     for (let i = 0; i < 64; i += 1) {
-      values[zigZag[i]] = getUint(data, i * bytes + offset)
+      tableData[zigZag[i]] = getUint(data, i * bytes + offset)
     }
-    tables.push({ id, values })
+    tables.push({ id, data: tableData })
     offset += bytes * 64
   } while (offset !== length)
   return {

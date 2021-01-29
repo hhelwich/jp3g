@@ -1,5 +1,6 @@
 import { APP, COM, JFIF } from './jpeg'
 import { getUint16 } from './common.decode'
+import { subarray } from './util'
 
 const dataToString = (data: Uint8Array): string =>
   String.fromCharCode.apply(null, (data as unknown) as number[])
@@ -18,7 +19,7 @@ export const isCustomApp0 = (identifier: string) => {
   return ({ appType, data }: APP) =>
     appType === 0 &&
     data[length] === 0 &&
-    dataToString(data.subarray(0, length)) === identifier
+    dataToString(subarray(data, 0, length)) === identifier
 }
 
 /**
@@ -62,7 +63,7 @@ const decodeJFIF = (data: Uint8Array): JFIF => {
     jfif.thumbnail = {
       x: thumbnailX,
       y: thumbnailY,
-      data: data.subarray(14),
+      data: subarray(data, 14),
     }
   }
   return jfif

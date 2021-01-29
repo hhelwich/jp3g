@@ -1,12 +1,12 @@
 import { readFileSync } from 'fs'
-import { Jpeg } from '../../jpeg'
+import { JPEG } from '../../jpeg'
 import jpeg8x8 from './8x8'
 
 const thumbnail = Array.from(
   readFileSync('src/__tests__/images/8x8-thumbnail.jpg')
 )
 
-const jpeg: Jpeg = jpeg8x8.slice()
+const jpeg: JPEG = jpeg8x8.slice()
 
 jpeg.splice(2, 0, {
   type: 'APP',

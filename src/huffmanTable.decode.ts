@@ -1,6 +1,6 @@
 import { DHT, DHT_TABLE, HuffmanTree } from './jpeg'
 import { getHiLow } from './common.decode'
-import { array } from './util'
+import { array, subarray } from './util'
 
 /**
  * Build a huffman tree from The counts of huffman codes starting with length
@@ -48,14 +48,14 @@ export const decodeDHT = (data: Uint8Array): DHT => {
     }
     const [cls, id] = getHiLow(data[offset++])
     // Get count of Huffman codes of length 1 to 16
-    const counts = array(data.subarray(offset, offset + 16))
+    const counts = array(subarray(data, offset, offset + 16))
     offset += 16
     // Get the symbols sorted by Huffman code
     const symbolCount = counts.reduce((sum, count) => sum + count, 0)
     if (symbolCount > length - offset) {
       throw Error('Invalid segment length')
     }
-    const symbols = array(data.subarray(offset, offset + symbolCount))
+    const symbols = array(subarray(data, offset, offset + symbolCount))
     offset += symbolCount
     const tree = getHuffmanTree({ counts, symbols })
     tables.push({

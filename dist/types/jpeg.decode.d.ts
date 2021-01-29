@@ -1,4 +1,4 @@
-import { SOF, Jpeg } from './jpeg';
+import { SOF, JPEG } from './jpeg';
 /**
  * Decode SOF (Start of frame) segment
  */
@@ -19,4 +19,4 @@ export declare const getDiff: (partialDiff: number, bitLength: number) => number
  *
  * @param jpeg
  */
-export declare const decodeJpeg: (jpeg: Uint8Array) => Jpeg;
+export declare const decodeJpeg: (jpeg: Uint8Array) => JPEG;

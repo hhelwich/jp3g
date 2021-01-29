@@ -1,5 +1,5 @@
 import { DHT, Marker, HuffmanTree } from './jpeg'
-import { setUint16, setHiLow } from './jpeg.encode'
+import { setUint16, setHiLow } from './common.encode'
 
 /**
  * Populate a map of symbols by code lengths for a given huffman tree node and
