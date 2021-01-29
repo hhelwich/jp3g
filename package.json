@@ -20,6 +20,7 @@
     "build": "del-cli dist && rollup -c && tsc -d --emitDeclarationOnly --resolveJsonModule --declarationDir dist --lib DOM src/index.ts && mv dist/src/ dist/types",
     "generate-test-images": "tsc --esModuleInterop --outDir tmp src/__tests__/util/generateTestImagesScript.ts && node tmp/__tests__/util/generateTestImagesScript.js; del-cli tmp; npm run format",
     "compile-demo": "tsc --outDir tmp demo/main.ts && cp tmp/main.js demo/ && del-cli tmp",
+    "prepublishOnly": "npm run build",
     "release": "np"
   },
   "devDependencies": {
