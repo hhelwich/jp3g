@@ -193,7 +193,8 @@ const tryDistributeCalls = () => {
       const nextCall = callQueue.shift()
       if (nextCall) {
         workerWithState[1] = false
-        notifyStartCall(worker, ...nextCall)
+        const [message, callback] = nextCall
+        notifyStartCall(worker, message, callback)
       }
     }
   }
@@ -240,7 +241,7 @@ export const workerFunction = <A extends any[], B>(
  * functions.
  */
 export const setWorkerCount = (workerCount: number) => {
-  if (window.Worker && maxWorkerCount !== workerCount) {
+  if (typeof Worker !== 'undefined' && maxWorkerCount !== workerCount) {
     maxWorkerCount = workerCount
     tryDistributeCalls()
   }

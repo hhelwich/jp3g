@@ -35,15 +35,15 @@ export const composeAsync = <A extends any[], B, C>(
   fn2: (b: B, callback: Callback<C>) => void
 ) => (...as: Append<A, Callback<C>>): void => {
   const len = as.length - 1
-  const args = array(as, 0, len) as A
   const callback = as[len] as Callback<C>
-  fn1(...args, ((error: Error, b: B) => {
+  as[len] = (((error: Error, b: B) => {
     if (error) {
       ;(callback as any)(error)
     } else {
       fn2(b, callback)
     }
-  }) as Callback<B>)
+  }) as Callback<B>) as any
+  fn1(...((as as any) as [...A, Callback<B>]))
 }
 
 /**
