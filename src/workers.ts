@@ -146,8 +146,7 @@ const notifyStartCall = (
   const [callId, fnId, args] = message
   activeCalls.set(callId, callback)
   const [inputTransfer] = workerFunctions[fnId]
-  const transfer = inputTransfer(args)
-  worker.postMessage([callId, fnId, args], transfer)
+  worker.postMessage(message, inputTransfer(args))
 }
 
 let scriptSrc: string
@@ -247,18 +246,13 @@ export const setWorkerCount = (workerCount: number) => {
   }
 }
 
+declare const bundleFunction: Function
+
 if (environment === Environment.BrowserMain) {
   /**
-   * The URL of this script. It gets a little hacky for browsers not supporting
-   * `document.currentScript`.
+   * The URL of this script.
    */
-  scriptSrc = (
-    (document.currentScript as HTMLScriptElement | undefined) ??
-    (() => {
-      const scripts = document.getElementsByTagName('script')
-      return scripts[scripts.length - 1]
-    })()
-  ).src
+  scriptSrc = URL.createObjectURL(new Blob([`(${bundleFunction})()`]))
 } else if (environment === Environment.BrowserWorker) {
   // Register function call handler in the worker.
   onmessage = onMessageToWorker(postMessage as any)
