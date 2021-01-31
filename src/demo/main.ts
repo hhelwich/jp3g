@@ -1,4 +1,4 @@
-/// <reference path="../dist/types/index.d.ts" />
+/// <reference path="../../dist/types/index.d.ts" />
 
 type Callback<T> = (error: Error | undefined | null, result: T) => void
 
@@ -10,7 +10,7 @@ const loadCanvas = (
   jp3g(file)
     .scale(1 / downScale)
     .toImageData((error, imageData) => {
-      let canvas: HTMLCanvasElement
+      let canvas: HTMLCanvasElement | undefined
       if (!error) {
         canvas = document.createElement('canvas')
         canvas.width = imageData.width
@@ -18,7 +18,7 @@ const loadCanvas = (
         const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
         ctx.putImageData(imageData, 0, 0)
       }
-      callback(error, canvas)
+      callback(error, canvas as HTMLCanvasElement)
     })
 }
 
@@ -57,11 +57,12 @@ let workerCount: number
 let downScale: number
 
 const $files = document.getElementById('files-input') as HTMLInputElement
-const $images = document.getElementById('images')
-const $workerCount = document.getElementById('workerCount') as HTMLInputElement
-const $downScale = document.getElementById('downScale') as HTMLInputElement
-
-const $message = document.getElementById('message')
+const $images = document.getElementById('images') as HTMLInputElement
+const $workerCount = document.getElementById('worker-count') as HTMLInputElement
+const $workerCountLabel = $workerCount.previousElementSibling as HTMLElement
+const $filesButton = document.getElementById('files') as HTMLElement
+const $downScale = document.getElementById('down-scale') as HTMLInputElement
+const $message = document.getElementById('message') as HTMLElement
 const messageSeconds = 2
 let messageCounter = 0
 const showMessage = (message: string) => {
@@ -77,7 +78,7 @@ const showMessage = (message: string) => {
 
 const showWorkerLabel = () => {
   const count = +$workerCount.value
-  $workerCount.previousElementSibling.innerHTML = `${count} Background Thread${
+  $workerCountLabel.innerHTML = `${count} Background Thread${
     count === 1 ? '<span style="opacity:0;">s</span>' : 's'
   }`
 }
@@ -105,15 +106,15 @@ setWorkerCount()
   $downScale.addEventListener('change', downScaleHandler)
   downScaleHandler()
 
-  document.getElementById('files').addEventListener('click', () => {
-    document.getElementById('files-input').click()
+  $filesButton.addEventListener('click', () => {
+    $files.click()
   })
 }
 
 let filesAddCounter = 0
 $files.addEventListener('change', () => {
   const id = ++filesAddCounter
-  const files = $files.files
+  const files = $files.files ?? []
   $images.innerHTML = ''
   imagesDone = 0
   imageCount = files.length
