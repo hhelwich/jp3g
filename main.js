@@ -1,4 +1,4 @@
-/// <reference path="../dist/types/index.d.ts" />
+/// <reference path="../../dist/types/index.d.ts" />
 var loadCanvas = function (file, downScale, callback) {
     jp3g(file)
         .scale(1 / downScale)
@@ -45,8 +45,10 @@ var workerCount;
 var downScale;
 var $files = document.getElementById('files-input');
 var $images = document.getElementById('images');
-var $workerCount = document.getElementById('workerCount');
-var $downScale = document.getElementById('downScale');
+var $workerCount = document.getElementById('worker-count');
+var $workerCountLabel = $workerCount.previousElementSibling;
+var $filesButton = document.getElementById('files');
+var $downScale = document.getElementById('down-scale');
 var $message = document.getElementById('message');
 var messageSeconds = 2;
 var messageCounter = 0;
@@ -62,7 +64,7 @@ var showMessage = function (message) {
 };
 var showWorkerLabel = function () {
     var count = +$workerCount.value;
-    $workerCount.previousElementSibling.innerHTML = count + " Background Thread" + (count === 1 ? '<span style="opacity:0;">s</span>' : 's');
+    $workerCountLabel.innerHTML = count + " Background Thread" + (count === 1 ? '<span style="opacity:0;">s</span>' : 's');
 };
 var setWorkerCount = function () {
     workerCount = +$workerCount.value;
@@ -82,14 +84,15 @@ setWorkerCount();
     };
     $downScale.addEventListener('change', downScaleHandler);
     downScaleHandler();
-    document.getElementById('files').addEventListener('click', function () {
-        document.getElementById('files-input').click();
+    $filesButton.addEventListener('click', function () {
+        $files.click();
     });
 }
 var filesAddCounter = 0;
 $files.addEventListener('change', function () {
+    var _a;
     var id = ++filesAddCounter;
-    var files = $files.files;
+    var files = (_a = $files.files) !== null && _a !== void 0 ? _a : [];
     $images.innerHTML = '';
     imagesDone = 0;
     imageCount = files.length;
