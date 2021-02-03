@@ -1,4 +1,5 @@
 /// <reference path="../../dist/types/index.d.ts" />
+var _a;
 var loadCanvas = function (file, downScale, callback) {
     jp3g(file)
         .scale(1 / downScale)
@@ -17,6 +18,7 @@ var loadCanvas = function (file, downScale, callback) {
 var imageCount = 0;
 var imagesDone = 0;
 var startTime;
+var requestDraw = (_a = window.requestAnimationFrame) !== null && _a !== void 0 ? _a : window.webkitRequestAnimationFrame;
 var draw = function () {
     var canvas = document.getElementById('files-progress');
     var width = canvas.clientWidth;
@@ -39,7 +41,7 @@ var draw = function () {
         ctx.fill();
         ctx.restore();
     }
-    requestAnimationFrame(draw);
+    requestDraw(draw);
 };
 var workerCount;
 var downScale;
@@ -125,4 +127,4 @@ $files.addEventListener('change', function () {
     }
 });
 console.log("Using jp3g " + jp3g.version);
-requestAnimationFrame(draw);
+requestDraw(draw);
