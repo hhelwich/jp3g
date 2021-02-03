@@ -1,10 +1,9 @@
 ;(global as any).window = {
   Worker: {},
+  URL: { createObjectURL: () => '' },
 }
 ;(global as any).document = { currentScript: '' }
 ;(global as any).bundleFunction = ''
-
-URL.createObjectURL = () => ''
 
 class FakeBlob {
   constructor(public source: ArrayBuffer | Uint8Array | Error) {}
