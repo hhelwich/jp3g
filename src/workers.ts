@@ -50,7 +50,7 @@ let callCounter = 0
  * Maps call ID for all currently running calls to the termination callback
  * which is used to end the calls.
  */
-const activeCalls = new Map<number, Callback<unknown>>()
+const activeCalls: { [key: number]: Callback<unknown> } = {}
 
 /**
  * Calls are queued here for later processing.
@@ -92,9 +92,8 @@ const initWorker = (worker: Worker): WorkerWithState => {
     // Mark worker as idle
     workerWithState[1] = true
     // Terminate function call
-    const callback = activeCalls.get(callId) as Callback<any>
-    activeCalls.delete(callId)
-    // TODO Preserve error type or remove special error types
+    const callback = activeCalls[callId] as Callback<any>
+    delete activeCalls[callId]
     const error = errorMessage != null ? Error(errorMessage) : undefined
     callback(error, result)
   }
@@ -144,7 +143,7 @@ const notifyStartCall = (
   callback: Callback<unknown>
 ) => {
   const [callId, fnId, args] = message
-  activeCalls.set(callId, callback)
+  activeCalls[callId] = callback
   const [inputTransfer] = workerFunctions[fnId]
   worker.postMessage(message, inputTransfer(args))
 }
@@ -249,11 +248,12 @@ export const setWorkerCount = (workerCount: number) => {
 declare const bundleFunction: Function
 
 if (environment === Environment.BrowserMain) {
+  const { createObjectURL } = window.URL || webkitURL
   /**
    * The URL of this script.
    */
-  scriptSrc = URL.createObjectURL(new Blob([`(${bundleFunction})()`]))
+  scriptSrc = createObjectURL(new Blob([`(${bundleFunction})()`]))
 } else if (environment === Environment.BrowserWorker) {
   // Register function call handler in the worker.
-  onmessage = onMessageToWorker(postMessage as any)
+  self.onmessage = onMessageToWorker(postMessage as any)
 }

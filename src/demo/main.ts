@@ -27,6 +27,9 @@ let imagesDone = 0
 
 let startTime: number
 
+const requestDraw =
+  window.requestAnimationFrame ?? window.webkitRequestAnimationFrame
+
 const draw = () => {
   const canvas = document.getElementById('files-progress') as HTMLCanvasElement
   const width = canvas.clientWidth
@@ -50,7 +53,7 @@ const draw = () => {
     ctx.fill()
     ctx.restore()
   }
-  requestAnimationFrame(draw)
+  requestDraw(draw)
 }
 
 let workerCount: number
@@ -147,4 +150,4 @@ $files.addEventListener('change', () => {
 
 console.log(`Using jp3g ${jp3g.version}`)
 
-requestAnimationFrame(draw)
+requestDraw(draw)
