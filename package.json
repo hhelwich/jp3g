@@ -1,6 +1,6 @@
 {
   "name": "jp3g",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "JPEG encoding / decoding",
   "keywords": [
     "JPEG"
