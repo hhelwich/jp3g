@@ -15,7 +15,7 @@ const config = ({ minify }) => ({
   plugins: [
     json(),
     typescript({
-      exclude: ['src/**/__tests__/**/*.ts'],
+      exclude: ['**/__tests__/**/*.ts', '**/__demo__/**/*.ts'],
     }),
     {
       renderChunk: code =>

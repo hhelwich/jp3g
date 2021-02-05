@@ -1,5 +1,3 @@
-/// <reference path="../../dist/types/index.d.ts" />
-
 type Callback<T> = (error: Error | undefined | null, result: T) => void
 
 const loadCanvas = (
@@ -149,7 +147,7 @@ $files.addEventListener('change', () => {
             if (imagesDone === imageCount) {
               const duration = Date.now() - startTime
               const minutes = Math.floor(duration / 60000)
-              const seconds = duration / 1000
+              const seconds = (duration / 1000) % 60
               showMessage(
                 'Done in ' +
                   (minutes > 0
