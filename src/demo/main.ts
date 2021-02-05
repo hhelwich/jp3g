@@ -65,19 +65,29 @@ const $workerCount = document.getElementById('worker-count') as HTMLInputElement
 const $workerCountLabel = $workerCount.previousElementSibling as HTMLElement
 const $filesButton = document.getElementById('files') as HTMLElement
 const $downScale = document.getElementById('down-scale') as HTMLInputElement
+const $title = document.getElementById('title') as HTMLElement
+
+$title.innerHTML = `${document.title} (v${jp3g.version})`
+
 const $message = document.getElementById('message') as HTMLElement
 const messageSeconds = 2
 let messageCounter = 0
-const showMessage = (message: string) => {
+const hideMessage = () => {
+  $message.style.display = 'none'
+}
+const showMessage = (message: string, seconds?: number) => {
   $message.innerHTML = message
   $message.style.display = 'block'
   const id = ++messageCounter
-  setTimeout(() => {
-    if (id === messageCounter) {
-      $message.style.display = 'none'
-    }
-  }, messageSeconds * 1000)
+  if (seconds != null) {
+    setTimeout(() => {
+      if (id === messageCounter) {
+        hideMessage()
+      }
+    }, seconds * 1000)
+  }
 }
+$message.addEventListener('click', hideMessage)
 
 const showWorkerLabel = () => {
   const count = +$workerCount.value
@@ -119,6 +129,7 @@ $files.addEventListener('change', () => {
   const id = ++filesAddCounter
   const files = $files.files ?? []
   $images.innerHTML = ''
+  hideMessage()
   imagesDone = 0
   imageCount = files.length
   startTime = Date.now()
@@ -130,15 +141,21 @@ $files.addEventListener('change', () => {
         loadCanvas(file, downScale, (error, canvas) => {
           if (isCurrent()) {
             if (error) {
-              showMessage(`⚠️ ${error.message}`)
+              showMessage(`⚠️ ${error.message}`, 2)
             } else {
               $images.appendChild(canvas)
             }
             imagesDone += 1
             if (imagesDone === imageCount) {
-              const duration = Math.round((Date.now() - startTime) / 1000)
+              const duration = Date.now() - startTime
+              const minutes = Math.floor(duration / 60000)
+              const seconds = duration / 1000
               showMessage(
-                `Done in ${duration} second${duration === 1 ? '' : 's'}`
+                'Done in ' +
+                  (minutes > 0
+                    ? `${minutes} minute${minutes > 1 ? 's' : ''} `
+                    : '') +
+                  `${seconds.toFixed(3)} seconds`
               )
             }
           }
@@ -147,7 +164,5 @@ $files.addEventListener('change', () => {
     })
   }
 })
-
-console.log(`Using jp3g ${jp3g.version}`)
 
 requestDraw(draw)
