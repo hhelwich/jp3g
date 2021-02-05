@@ -6,26 +6,45 @@ body {
   font-family: sans-serif;
 }
 
-#control {
-  width: calc(100% - 32px);
-  background-color: #fff;
+#nav {
   overflow: hidden;
   position: fixed;
   top: 0;
-  padding: 16px;
-  height: 120px;
   box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.4);
-  display: flex;
-  align-items: flex-end;
-  flex-direction: column;
+  width: 100%;
 }
 
 @media (min-width: 600px) {
-  #control {
+  #nav {
     width: auto;
     right: 0;
     border-radius: 0 0 0 2px;
   }
+}
+
+#repo-link {
+  background-color: #444;
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  text-decoration: none;
+}
+
+#repo-link svg {
+  fill: white;
+  padding: 9px;
+}
+
+#repo-link > span {
+  padding-right: 12px;
+}
+
+#control {
+  background-color: #fff;
+  padding: 16px;
+  height: 120px;
 }
 
 #control > div {
@@ -70,7 +89,7 @@ input[type='range'] {
 }
 
 #images {
-  margin-top: 152px;
+  margin-top: 202px;
   padding: 16px;
   text-align: center;
 }
