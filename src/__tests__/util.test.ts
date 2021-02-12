@@ -259,6 +259,9 @@ describe('util', () => {
       expect(subarray(buf, 1)).toEqual(new Uint8Array([5, 7, 11]))
       expect(subarray(buf, 3)).toEqual(new Uint8Array([11]))
     })
+    it('can omit start and end parameter', () => {
+      expect(subarray(buf)).toEqual(new Uint8Array([3, 5, 7, 11]))
+    })
     it('is a view on the same ArrayBuffer for direct Uint8Array', () => {
       expect(subarray(buf, 1, 2).buffer).toBe(buf.buffer)
     })

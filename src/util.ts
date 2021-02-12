@@ -184,9 +184,8 @@ export const waitState = (
  * `Uint8Array` also for node.js `Buffer`s.
  * Indices behave the same way like `Array#slice()` and `Uint8Array#subarray()`.
  */
-export const subarray = (buffer: Uint8Array, start: number, end?: number) =>
-  new Uint8Array(
-    buffer.buffer,
-    buffer.byteOffset + start,
-    (end ?? buffer.byteLength) - start
-  )
+export const subarray = (
+  buffer: Uint8Array,
+  start = 0,
+  end = buffer.byteLength
+) => new Uint8Array(buffer.buffer, buffer.byteOffset + start, end - start)

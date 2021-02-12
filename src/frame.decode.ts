@@ -115,10 +115,8 @@ export const decodeFrame = (
           imageData: [data, targetWidth],
         } = frame
         const { components } = segment
-        const interleaved = components.length > 1
-        if (!interleaved) {
-          // Support only interleaved scans at the moment
-          throw Error('Not interleaved')
+        if (components.length !== 3) {
+          throw Error('Unsupported color space')
         }
         let minH = 5
         let maxH = 0

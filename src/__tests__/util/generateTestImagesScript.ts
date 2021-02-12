@@ -1,13 +1,22 @@
-import { readFileSync, writeFileSync } from 'fs'
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  unlinkSync,
+  writeFileSync,
+} from 'fs'
 import { createCanvas } from 'canvas'
 import { decodeJpeg } from '../../jpeg.decode'
-import { decodeFrame } from '../../frame.decode'
+import { decodeFrame, ImageDataArgs } from '../../frame.decode'
 import { distanceRgb } from './distanceRgb'
 import sharp from 'sharp'
 import { JFIFUnits, JPEG, QuantizationTable } from '../../jpeg'
-import { createImageData } from '../../util'
+import { createImageData, subarray } from '../../util'
+import { getTestImageSpecs, TestImageSpec, imageDir } from './testUtil'
 
-const imageDir = 'src/__tests__/images/'
+const originalImageDir = `${imageDir}/original`
+
+const referenceImageNameSuffix = '-ref'
 
 const { round } = Math
 
@@ -56,175 +65,55 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
     .removeAlpha()
     .toFile(fileName)
 
+const buildReadme = (testInfo: TestImageSpec[]) => {
+  const header = [
+    'Test JPEG',
+    'Expected JPEG Object',
+    'Expected Image Data',
+    'Description',
+  ]
+  const headerLines = [
+    `| ${header.join(' | ')} |`,
+    `| ${header.map(() => '---').join(' | ')} |`,
+  ]
+  const lines = headerLines.concat(
+    testInfo.map(
+      ({
+        name,
+        errorMessageForGetObject,
+        errorMessageForGetImageData,
+        description,
+      }) =>
+        `| ${[
+          `[${name}.jpg](${name}.jpg)`,
+          errorMessageForGetObject != null
+            ? `⚠️ ${errorMessageForGetObject}`
+            : `[${name}.ts](${name}.ts)`,
+          errorMessageForGetObject != null
+            ? ''
+            : errorMessageForGetImageData != null
+            ? `⚠️ ${errorMessageForGetImageData}`
+            : `[${name}.png](${name}.png)`,
+          description,
+        ].join(' | ')} |`
+    )
+  )
+  return lines.join('\n')
+}
+
+const difference = <T>(setA: Set<T>, setB: Set<T>): Set<T> => {
+  const _difference = new Set(setA)
+  for (const elem of setB) {
+    _difference.delete(elem)
+  }
+  return _difference
+}
+
 type FileInfo = {
   name: string
   downScale?: 1 | 8
   diff: { max: number; mean: number }
 }
-;(async () => {
-  try {
-    // Generate some images which are used as source to create JPEG test images
-    for (const [width, height] of [
-      /*
-      [7, 11],
-      [8, 8],
-      [8, 16],
-      [8, 24],
-      [8, 32],
-      [11, 7],
-      [16, 8],
-      [16, 16],
-      [16, 24],
-      [16, 32],
-      [24, 8],
-      [24, 16],
-      [24, 24],
-      [24, 32],
-      [32, 8],
-      [32, 16],
-      [32, 24],
-      [32, 32],
-      [35, 35],
-      [64, 64],
-      */
-    ] as [number, number][]) {
-      await writeImageData(
-        createTestImage(width, height),
-        `${imageDir}original/${width}x${height}.png`
-      )
-    }
-    // Iterate all JPEG images which are used to test the decoder and create a
-    // PNG image to hold the expected result.
-    const diffs: FileInfo[] = []
-    let differentDiff = false
-    let aboveDiff = false
-    for (const jpegFile of [
-      { name: '8x8', diff: { max: 0.3, mean: 0.02 } },
-      { name: '8x16', diff: { max: 15.15, mean: 2.67 } },
-      { name: '16x8', diff: { max: 18.07, mean: 2.5 } },
-      { name: '16x16', diff: { max: 0.37, mean: 0.01 } },
-      {
-        name: '32x32-subsampling-221221-mcu-2x2',
-        diff: { max: 18.81, mean: 1.06 },
-      },
-      {
-        name: '35x35-subsampling-122111-partial-mcu-3x3',
-        diff: { max: 28.81, mean: 2.05 },
-      },
-      { name: 'subsampling-8x16-121111', diff: { max: 15.2, mean: 2.4 } },
-      { name: 'subsampling-8x16-121211', diff: { max: 6.41, mean: 1.17 } },
-      { name: 'subsampling-8x16-121212', diff: { max: 0.36, mean: 0.01 } },
-      { name: 'subsampling-8x32-121214', diff: { max: 20.55, mean: 2.03 } },
-      { name: 'subsampling-16x16-212222', diff: { max: 11.41, mean: 1.7 } },
-      { name: 'subsampling-16x8-211111', diff: { max: 22.68, mean: 2.66 } },
-      { name: 'subsampling-16x16-212211', diff: { max: 23.59, mean: 3.39 } },
-      { name: 'subsampling-16x16-212212', diff: { max: 18.1, mean: 2.95 } },
-      { name: 'subsampling-16x16-221111', diff: { max: 22.31, mean: 3.66 } },
-      { name: 'subsampling-32x16-222141', diff: { max: 24.98, mean: 2.78 } },
-      { name: 'subsampling-16x16-222211', diff: { max: 22.24, mean: 2.4 } },
-      { name: 'subsampling-16x32-211414', diff: { max: 22.79, mean: 1.94 } },
-      { name: 'subsampling-16x32-241111', diff: { max: 0.35, mean: 0.02 } },
-      { name: 'subsampling-32x8-114121', diff: { max: 15.63, mean: 1.33 } },
-      { name: 'subsampling-32x8-411111', diff: { max: 0.43, mean: 0.01 } },
-      { name: 'subsampling-32x16-221141', diff: { max: 22.45, mean: 1.61 } },
-      { name: 'subsampling-32x32-111441', diff: { max: 0.44, mean: 0.02 } },
-      { name: 'subsampling-8x24-131311', diff: { max: 0.58, mean: 0.03 } },
-      { name: 'subsampling-16x24-112313', diff: { max: 21.22, mean: 1.74 } },
-      { name: 'subsampling-24x8-111131', diff: { max: 0.87, mean: 0.02 } },
-      { name: 'subsampling-24x16-121232', diff: { max: 0.68, mean: 0.01 } },
-      { name: 'subsampling-24x16-111231', diff: { max: 19.84, mean: 1.09 } },
-      { name: 'subsampling-24x16-113211', diff: { max: 1.24, mean: 0.03 } },
-      { name: 'subsampling-24x16-121132', diff: { max: 0.74, mean: 0.02 } },
-      { name: 'subsampling-24x16-311231', diff: { max: 21.7, mean: 2.26 } },
-      { name: 'subsampling-24x24-131331', diff: { max: 0.49, mean: 0.02 } },
-      { name: 'subsampling-24x32-311114', diff: { max: 1.12, mean: 0.04 } },
-      { name: '64x64', downScale: 8, diff: { max: 9.03, mean: 1.33 } },
-    ] as FileInfo[]) {
-      // Decode with libjpeg for reference
-      const fileName = `${imageDir}${jpegFile.name}.jpg`
-      const downScale = jpegFile.downScale ?? 1
-      let sharpImage = sharp(fileName)
-      if (downScale > 1) {
-        const metaData = await sharpImage.metadata()
-        // TODO Check that rounding is the same as in libjpeg downscaling
-        sharpImage = sharpImage.resize({
-          width: round(metaData.width! / downScale),
-        })
-      }
-      const referenceImage = await sharpImage
-        .raw()
-        .toBuffer({ resolveWithObject: true })
-      // Decode image with decoder under test
-      const jpeg = decodeJpeg(new Uint8Array(readFileSync(fileName)))
-      const [imageData, imageWidth, imageHeight] = decodeFrame(jpeg, {
-        downScale,
-      })
-      // Verify metadata
-      const { width, height } = referenceImage.info
-      if (imageHeight !== height || imageWidth !== width) {
-        throw Error(`Unexpected image dimension: ${jpegFile.name}`)
-      }
-      // Verify pixel data is very similar to libjpeg decoder result
-      let maxDistance = 0
-      let meanDistance = 0
-      const count = width * height
-      for (let x = 0; x < width; x += 1) {
-        for (let y = 0; y < height; y += 1) {
-          const i = (x + y * width) * 4
-          const alpha = imageData[i + 3]
-          if (alpha !== 255) {
-            throw Error('Unexpected alpha')
-          }
-          const rgb = [imageData[i], imageData[i + 1], imageData[i + 2]]
-          const j = (x + y * width) * 3
-          const rgbReference = [
-            referenceImage.data[j],
-            referenceImage.data[j + 1],
-            referenceImage.data[j + 2],
-          ]
-          const distance = distanceRgb(rgb, rgbReference)
-          maxDistance = Math.max(maxDistance, distance)
-          meanDistance += distance / count
-        }
-      }
-      maxDistance = ceil2(maxDistance)
-      meanDistance = ceil2(meanDistance)
-      diffs.push({
-        name: jpegFile.name,
-        downScale: jpegFile.downScale,
-        diff: { max: maxDistance, mean: meanDistance },
-      })
-      if (
-        maxDistance !== jpegFile.diff.max ||
-        meanDistance !== jpegFile.diff.mean
-      ) {
-        differentDiff = true
-        if (
-          maxDistance > jpegFile.diff.max ||
-          meanDistance > jpegFile.diff.mean
-        ) {
-          aboveDiff = true
-        }
-      }
-      // Write expected decoder result which is used in decoder tests
-      await writeImageData(
-        createImageData(imageData, imageWidth, imageHeight),
-        `${imageDir}${jpegFile.name}-${
-          downScale > 1 ? `scale${downScale}-` : ''
-        }expected.png`
-      )
-    }
-    if (differentDiff) {
-      console.log(`Changed pixel difference ${JSON.stringify(diffs)}`)
-      if (aboveDiff) {
-        throw Error('Pixel difference is to high')
-      }
-    }
-    console.log('OK')
-  } catch (e) {
-    console.log(e)
-  }
-})()
 
 const list2ts = (list: any, indent: string, width = 80): string =>
   (Array.from(list) as any[])
@@ -317,26 +206,263 @@ const jpeg2ts = (jpeg: JPEG) => `
 
   export default jpeg`
 
-/**
- * Generate expected object files from images.
- */
-for (const jpegFileName of [
-  '7x11',
-  '8x8',
-  '8x8-cmyk',
-  '8x8-gray',
-  '8x8-thumbnail',
-  '8x8-with-thumbnail',
-  '8x16',
-  '11x7',
-  '16x8',
-  '16x16',
-  '32x32',
-  'lotti-8-4:4:4-90',
-  '32x32-subsampling-221221-mcu-2x2',
-  '35x35-subsampling-122111-partial-mcu-3x3',
-]) {
-  const fileName = `${imageDir}${jpegFileName}.jpg`
-  const jpeg = decodeJpeg(new Uint8Array(readFileSync(fileName)))
-  writeFileSync(`${imageDir}${jpegFileName}.ts`, jpeg2ts(jpeg))
+// Generate some images which are used as source to create JPEG test images
+const updateOriginalImages = async () => {
+  const originalWantedSizes = new Set([
+    '7x11',
+    '8x8',
+    '8x16',
+    '8x24',
+    '8x32',
+    '11x7',
+    '16x8',
+    '16x16',
+    '16x24',
+    '16x32',
+    '24x8',
+    '24x16',
+    '24x24',
+    '24x32',
+    '32x8',
+    '32x16',
+    '32x24',
+    '32x32',
+    '35x35',
+    '64x64',
+  ])
+  const originalExistingSizes = new Set(
+    readdirSync(originalImageDir)
+      .filter(fileName => fileName.match(/^\d+x\d+\.png$/))
+      .map(fileName => fileName.slice(0, -4))
+  )
+  // Delete unwanted original files
+  for (const fileName of difference(
+    originalExistingSizes,
+    originalWantedSizes
+  )) {
+    unlinkSync(`${originalImageDir}/${fileName}.png`)
+  }
+  // Generate wanted original files
+  for (const fileName of difference(
+    originalWantedSizes,
+    originalExistingSizes
+  )) {
+    const match = fileName.match(/^(\d+)x(\d+)$/)
+    if (!match) {
+      throw Error('Should not be possible')
+    }
+    await writeImageData(
+      createTestImage(+match[1], +match[2]),
+      `${originalImageDir}/${fileName}.png`
+    )
+  }
 }
+
+const verifyImageData = async (jpegFile: {
+  name: string
+  downScale: number
+  maxMean: number
+  max: number
+}) => {
+  // Decode with libjpeg for reference
+  const fileName = `${imageDir}/${jpegFile.name}.jpg`
+  const downScale = jpegFile.downScale ?? 1
+  let sharpImage = sharp(fileName)
+  if (downScale > 1) {
+    const metaData = await sharpImage.metadata()
+    // TODO Check that rounding is the same as in libjpeg downscaling
+    sharpImage = sharpImage.resize({
+      width: round(metaData.width! / downScale),
+    })
+  }
+  const referenceImage = await sharpImage
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true })
+  // Decode image with decoder under test
+  const jpeg = decodeJpeg(subarray(readFileSync(fileName)))
+  const [imageData, imageWidth, imageHeight] = decodeFrame(jpeg, {
+    downScale,
+  })
+  // Verify metadata
+  const { width, height } = referenceImage.info
+  if (imageHeight !== height || imageWidth !== width) {
+    throw Error(`Unexpected image dimension: ${jpegFile.name}`)
+  }
+  // Verify pixel data is very similar to libjpeg decoder result
+  let maxDistance = 0
+  let meanDistance = 0
+  const count = width * height
+  for (let x = 0; x < width; x += 1) {
+    for (let y = 0; y < height; y += 1) {
+      const i = (x + y * width) * 4
+      const alpha = imageData[i + 3]
+      if (alpha !== 255) {
+        throw Error('Unexpected alpha')
+      }
+      const rgb = [imageData[i], imageData[i + 1], imageData[i + 2]]
+      const rgbReference = [
+        referenceImage.data[i],
+        referenceImage.data[i + 1],
+        referenceImage.data[i + 2],
+      ]
+      const distance = distanceRgb(rgb, rgbReference)
+      maxDistance = Math.max(maxDistance, distance)
+      meanDistance += distance / count
+    }
+  }
+  maxDistance = ceil2(maxDistance)
+  meanDistance = ceil2(meanDistance)
+  if (maxDistance > jpegFile.max || meanDistance > jpegFile.maxMean) {
+    console.log(
+      `Diff too much for "${jpegFile.name}": mean=${meanDistance}, max=${maxDistance}`
+    )
+    writeImageData(
+      { width, height, data: new Uint8ClampedArray(referenceImage.data) },
+      `${imageDir}/${jpegFile.name}${referenceImageNameSuffix}.png`
+    )
+  }
+}
+
+;(async () => {
+  try {
+    await updateOriginalImages()
+
+    const testJPEGs = new Set(
+      readdirSync(imageDir)
+        .filter(fileName => fileName.match(/\.jpg$/))
+        .map(fileName => fileName.slice(0, -4))
+    )
+    const expectedJPEGObjects = new Set(
+      readdirSync(imageDir)
+        .filter(fileName => fileName.match(/\.ts$/))
+        .map(fileName => fileName.slice(0, -3))
+    )
+    const pngNames = readdirSync(imageDir)
+      .filter(fileName => fileName.match(/\.png$/))
+      .map(fileName => fileName.slice(0, -4))
+
+    const expectedJPEGImageData = new Set(
+      pngNames.filter(name => !name.endsWith(referenceImageNameSuffix))
+    )
+    const refPngs = pngNames.filter(name =>
+      name.endsWith(referenceImageNameSuffix)
+    )
+
+    // Delete previous refercence PNGs
+    for (const fileName of refPngs) {
+      unlinkSync(`${imageDir}/${fileName}.png`)
+    }
+
+    const testInfo = getTestImageSpecs()
+
+    // Throw if there are existing JPEG object files but no JPEG
+    const missingTestJPEGs = difference(expectedJPEGObjects, testJPEGs)
+    if (missingTestJPEGs.size > 0) {
+      throw Error(
+        `No JPEG found for expected object file(s) ${JSON.stringify([
+          ...missingTestJPEGs,
+        ]).slice(1, -1)}`
+      )
+    }
+
+    // Throw if there are existing JPEG image data files but no JPEG
+    const missingTestJPEGs2 = difference(expectedJPEGImageData, testJPEGs)
+    if (missingTestJPEGs2.size > 0) {
+      throw Error(
+        `No JPEG found for expected image data file(s) ${JSON.stringify([
+          ...missingTestJPEGs2,
+        ]).slice(1, -1)}`
+      )
+    }
+
+    // Throw if there is no corresponding JPEG for README row
+    const missingTestJPEGs3 = difference(
+      new Set(testInfo.map(({ name }) => name)),
+      testJPEGs
+    )
+    if (missingTestJPEGs3.size > 0) {
+      throw Error(
+        `No JPEG found for README image file(s) ${JSON.stringify([
+          ...missingTestJPEGs3,
+        ]).slice(1, -1)}`
+      )
+    }
+
+    const jpegNames = testInfo
+      .map(({ name, description }) => ({ name, description }))
+      .concat(
+        [...difference(testJPEGs, new Set(testInfo.map(({ name }) => name)))]
+          .sort()
+          .map(name => ({ name, description: '?' }))
+      )
+
+    const newTestInfo: TestImageSpec[] = []
+    for (const { name, description } of jpegNames) {
+      const fileName = `${imageDir}/${name}.jpg`
+      const objectFileName = `${imageDir}/${name}.ts`
+      const pngFileName = `${imageDir}/${name}.png`
+      let errorMessageForGetObject: string | undefined
+      let errorMessageForGetImageData: string | undefined
+      // Generate expected JPEG object file
+      let jpeg: JPEG | undefined
+      try {
+        jpeg = decodeJpeg(new Uint8Array(readFileSync(fileName)))
+      } catch (error) {
+        errorMessageForGetObject = (error as Error).message ?? ''
+      }
+      if (jpeg) {
+        writeFileSync(objectFileName, jpeg2ts(jpeg))
+        // Generate expected image data file
+        // TODO Generate down scaled versions?
+        const downScale = 1
+        let imageDataArgs: ImageDataArgs | undefined
+        try {
+          imageDataArgs = decodeFrame(jpeg, {
+            downScale,
+          })
+        } catch (error) {
+          errorMessageForGetImageData = (error as Error).message ?? ''
+        }
+        if (imageDataArgs) {
+          const [imageData, imageWidth, imageHeight] = imageDataArgs
+
+          if (false) {
+            await verifyImageData({ name, downScale, maxMean: 2.3, max: 2.3 })
+          }
+
+          await writeImageData(
+            createImageData(imageData, imageWidth, imageHeight),
+            pngFileName
+          )
+        }
+      }
+      if (errorMessageForGetObject != null) {
+        if (existsSync(objectFileName)) {
+          unlinkSync(objectFileName)
+        }
+      }
+      if (
+        errorMessageForGetObject != null ||
+        errorMessageForGetImageData != null
+      ) {
+        if (existsSync(pngFileName)) {
+          unlinkSync(pngFileName)
+        }
+      }
+      newTestInfo.push({
+        name,
+        description,
+        errorMessageForGetObject,
+        errorMessageForGetImageData,
+      })
+    }
+
+    const readme = buildReadme(newTestInfo)
+    writeFileSync(`${imageDir}/README.md`, readme)
+
+    console.log('OK')
+  } catch (e) {
+    console.log(e)
+  }
+})()

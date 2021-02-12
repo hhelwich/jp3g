@@ -172,7 +172,7 @@ describe('index', () => {
     })
   })
   describe('scale', () => {
-    it('can scale down by 1 / 8', async () => {
+    xit('can scale down by 1 / 8', async () => {
       const imageData = await jp3g(jpegData)
         .scale(1 / 8)
         .toImageData()

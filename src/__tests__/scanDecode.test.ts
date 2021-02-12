@@ -1,8 +1,7 @@
 import { range } from './util/testUtil'
-import { SOS, DHT } from '../jpeg'
+import { SOS, HuffmanTree } from '../jpeg'
 import { extend, createDecodeQCoeffs, createNextBit } from '../frame.decode'
-import jpegLotti8Struct from './images/lotti-8-4:4:4-90'
-import jpegLotti8Coeff from './images/lotti-8-4:4:4-90.qcoeff'
+import jpeg from './images/8x8'
 
 describe('decode scan', () => {
   describe('extend', () => {
@@ -59,20 +58,56 @@ describe('decode scan', () => {
     })
   })
   describe('testimage', () => {
-    it('foo', async () => {
-      const scan = (<SOS>jpegLotti8Struct[9]).data
-      const ht00 = (<DHT>jpegLotti8Struct[5]).tables[0].tree
-      const ht01 = (<DHT>jpegLotti8Struct[6]).tables[0].tree
-      const ht10 = (<DHT>jpegLotti8Struct[7]).tables[0].tree
-      const ht11 = (<DHT>jpegLotti8Struct[8]).tables[0].tree
+    it('foo', () => {
+      const scan = (jpeg.filter(({ type }) => type === 'SOS') as SOS[])[0].data
+      const ht = jpeg.reduce((tables, segment) => {
+        if (segment.type === 'DHT') {
+          for (const { cls, id, tree } of segment.tables) {
+            ;(tables[id] ?? (tables[id] = []))[cls] = tree
+          }
+        }
+        return tables
+      }, [] as HuffmanTree[][])
       const qCoeffs = new Int16Array(64)
       const decodeCoeff = createDecodeQCoeffs(scan, qCoeffs)
-      decodeCoeff(0, ht00, ht01)
-      expect(Array.from(qCoeffs)).toEqual(jpegLotti8Coeff[0])
-      decodeCoeff(0, ht10, ht11)
-      expect(Array.from(qCoeffs)).toEqual(jpegLotti8Coeff[1])
-      decodeCoeff(0, ht10, ht11)
-      expect(Array.from(qCoeffs)).toEqual(jpegLotti8Coeff[2])
+      decodeCoeff(0, ht[0][0], ht[0][1])
+      // prettier-ignore
+      expect([...qCoeffs]).toEqual([
+         -35, -67, -35,  28,   4,  -5,   2,  -3,
+          88, -81, -13,   1,   4,   1,  -3,   1,
+         -13,  42, -20, -17,   2,   3,  -1,   3,
+          49,   1, -32,   0,   0,  -1,   3,  -2,
+           4,  -4,   2,   0,  -2,   1,  -1,   0,
+         -11,   2,   5,  -1,  -1,   0,  -1,   1,
+           2,  -2,  -1,   3,  -1,  -1,   0,  -1,
+          -5,   1,   3,  -1,   0,   1,  -1,   0,
+      ])
+      decodeCoeff(0, ht[1][0], ht[1][1])
+      // prettier-ignore
+      expect([...qCoeffs]).toEqual([
+          35,  -3,  17,  -3,   0,   1,  -1,   0,
+        -137,  23,  10,   0,   0,   0,   1,   0,
+          -5,   2,   0,   1,   0,  -1,   1,   0,
+          -5,   0,   2,   0,   0,   0,  -2,   1,
+           0,  -1,   0,   1,   0,   0,   0,   0,
+           1,   0,  -1,   0,  -1,   0,   1,   0,
+          -1,   1,   0,  -1,   0,   0,   0,   1,
+           3,   0,  -3,   1,   1,   0,   0,   0,
+        ]
+      )
+      decodeCoeff(0, ht[1][0], ht[1][1])
+      // prettier-ignore
+      expect([...qCoeffs]).toEqual([
+          45, 145,  -2,   5,   0,  -1,  -1,  -3,
+         -25,  29,   0,   0,   1,   0,   0,   0,
+          17, -10,  -1,  -2,   0,   1,   0,   3,
+           3,   0,  -1,   0,  -1,   0,   1,   1,
+           0,   0,   0,   0,   0,   1,   0,  -1,
+           0,   0,   1,   0,   0,   0,   0,   0,
+          -1,  -1,   1,   2,   0,  -1,   0,   0,
+           0,   0,   0,   1,   1,   0,  -1,   0,
+        ]
+      )
     })
   })
 })

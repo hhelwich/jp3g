@@ -1,10 +1,11 @@
-import fs from 'fs'
+import { readFileSync } from 'fs'
 import sharp from 'sharp'
 import { JPEG } from '../../jpeg'
+import { subarray } from '../../util'
 
 const { abs } = Math
 
-const imageDir = 'src/__tests__/images/'
+export const imageDir = 'src/__tests__/images'
 
 export const range = (length: number) => {
   const result: number[] = []
@@ -15,7 +16,7 @@ export const range = (length: number) => {
 }
 
 export const getJpegBuffer = (fileName: string) =>
-  fs.readFileSync(`${imageDir}${fileName}.jpg`)
+  readFileSync(`${imageDir}/${fileName}.jpg`)
 
 export const writeImageDataToPng = async (
   { data, width, height }: ImageData,
@@ -23,13 +24,13 @@ export const writeImageDataToPng = async (
 ) => {
   await sharp(Buffer.from(data), { raw: { width, height, channels: 4 } })
     .removeAlpha()
-    .toFile(`${imageDir}${fileName}.png`)
+    .toFile(`${imageDir}/${fileName}.png`)
 }
 
 export const getExpectedImageData = async (
   fileName: string
 ): Promise<ImageData> => {
-  fileName = `${imageDir}${fileName}-expected.png`
+  fileName = `${imageDir}/${fileName}.png`
   const image = sharp(fileName).raw().ensureAlpha()
   const [{ width, height }, data] = await Promise.all([
     image.metadata(),
@@ -136,3 +137,44 @@ export const getJpegArrayBuffers = (jpeg: JPEG): ArrayBuffer[] => {
   iterate(jpeg)
   return Array.from(buffers)
 }
+
+const testImageReadmeFileName = `${imageDir}/README.md`
+
+export type TestImageSpec = {
+  name: string
+  description: string
+  errorMessageForGetObject?: string
+  errorMessageForGetImageData?: string
+}
+
+const getTestImageSpec = ([
+  testImage,
+  object,
+  imageData,
+  description,
+]: string[]): TestImageSpec => {
+  const name = testImage.match(/\[(.*)\.jpg\]/)?.[1] as string
+  const errorGetObject = object.match(/⚠️ (.*)/)?.[1]
+  const errorGetImageData = imageData.match(/⚠️ (.*)/)?.[1]
+  return {
+    name,
+    description,
+    errorMessageForGetObject: errorGetObject,
+    errorMessageForGetImageData: errorGetImageData,
+  }
+}
+
+export const getTestImageSpecs = () =>
+  readFileSync(testImageReadmeFileName)
+    .toString()
+    .split('\n') // Get rows
+    .filter(row => row.trim().length > 0) // Remove empty rows
+    .slice(2) // Remove table header
+    .map(
+      row =>
+        row
+          .split('|') // Get columns
+          .slice(1, 5) // Get real columns
+          .map(col => col.trim()) // Trim
+    )
+    .map(getTestImageSpec)
