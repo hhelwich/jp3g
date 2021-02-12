@@ -67,12 +67,15 @@ const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
 
 const buildReadme = (testInfo: TestImageSpec[]) => {
   const header = [
-    'Test JPEG',
-    'Expected JPEG Object',
-    'Expected Image Data',
+    'Name',
     'Description',
+    'Actual JPEG',
+    'Expected Image',
+    'Expected Object',
   ]
   const headerLines = [
+    '# JPEG test images',
+    '',
     `| ${header.join(' | ')} |`,
     `| ${header.map(() => '---').join(' | ')} |`,
   ]
@@ -85,16 +88,17 @@ const buildReadme = (testInfo: TestImageSpec[]) => {
         description,
       }) =>
         `| ${[
-          `[${name}.jpg](${name}.jpg)`,
-          errorMessageForGetObject != null
-            ? `⚠️ ${errorMessageForGetObject}`
-            : `[${name}.ts](${name}.ts)`,
+          name,
+          description,
+          `![${name}.jpg](${name}.jpg)`,
           errorMessageForGetObject != null
             ? ''
             : errorMessageForGetImageData != null
             ? `⚠️ ${errorMessageForGetImageData}`
-            : `[${name}.png](${name}.png)`,
-          description,
+            : `![${name}.png](${name}.png)`,
+          errorMessageForGetObject != null
+            ? `⚠️ ${errorMessageForGetObject}`
+            : `[TS](${name}.ts)`,
         ].join(' | ')} |`
     )
   )

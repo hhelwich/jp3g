@@ -1,7 +1,6 @@
 import { readFileSync } from 'fs'
 import sharp from 'sharp'
 import { JPEG } from '../../jpeg'
-import { subarray } from '../../util'
 
 const { abs } = Math
 
@@ -148,14 +147,14 @@ export type TestImageSpec = {
 }
 
 const getTestImageSpec = ([
-  testImage,
-  object,
-  imageData,
+  name,
   description,
+  actualJPEG,
+  expectedImage,
+  expectedObject,
 ]: string[]): TestImageSpec => {
-  const name = testImage.match(/\[(.*)\.jpg\]/)?.[1] as string
-  const errorGetObject = object.match(/⚠️ (.*)/)?.[1]
-  const errorGetImageData = imageData.match(/⚠️ (.*)/)?.[1]
+  const errorGetObject = expectedObject.match(/⚠️ (.*)/)?.[1]
+  const errorGetImageData = expectedImage.match(/⚠️ (.*)/)?.[1]
   return {
     name,
     description,
@@ -169,12 +168,12 @@ export const getTestImageSpecs = () =>
     .toString()
     .split('\n') // Get rows
     .filter(row => row.trim().length > 0) // Remove empty rows
-    .slice(2) // Remove table header
+    .slice(3) // Remove table header
     .map(
       row =>
         row
           .split('|') // Get columns
-          .slice(1, 5) // Get real columns
+          .slice(1, 6) // Get real columns
           .map(col => col.trim()) // Trim
     )
     .map(getTestImageSpec)
