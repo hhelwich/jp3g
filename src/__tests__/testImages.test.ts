@@ -10,8 +10,12 @@ import {
   getTestImageSpecs,
 } from './util/testUtil'
 
+const nameFilter = /./
+
 describe('test images', () => {
-  const testImages = getTestImageSpecs()
+  const testImages = getTestImageSpecs().filter(({ name }) =>
+    name.match(nameFilter)
+  )
   for (const testImage of testImages) {
     describe(testImage.name, () => {
       const jpegBuffer = subarray(getJpegBuffer(testImage.name))

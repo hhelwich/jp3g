@@ -12,7 +12,13 @@ import { distanceRgb } from './distanceRgb'
 import sharp from 'sharp'
 import { JFIFUnits, JPEG, QuantizationTable } from '../../jpeg'
 import { createImageData, subarray } from '../../util'
-import { getTestImageSpecs, TestImageSpec, imageDir } from './testUtil'
+import {
+  getTestImageSpecs,
+  TestImageSpec,
+  imageDir,
+  getExpectedJpeg,
+} from './testUtil'
+import { encodeJpeg } from '../../jpeg.encode'
 
 const originalImageDir = `${imageDir}/original`
 
@@ -358,39 +364,21 @@ const verifyImageData = async (jpegFile: {
       unlinkSync(`${imageDir}/${fileName}.png`)
     }
 
+    // Create JPEG files from JPEG objects if missing
+    for (const fileName of difference(expectedJPEGObjects, testJPEGs)) {
+      const jpeg = await getExpectedJpeg(fileName)
+      const jpegBuf = encodeJpeg(jpeg)
+      writeFileSync(`${imageDir}/${fileName}.jpg`, jpegBuf)
+      testJPEGs.add(fileName)
+    }
+
     const testInfo = getTestImageSpecs()
+      // Remove README entries without test image
+      .filter(({ name }) => testJPEGs.has(name))
 
-    // Throw if there are existing JPEG object files but no JPEG
-    const missingTestJPEGs = difference(expectedJPEGObjects, testJPEGs)
-    if (missingTestJPEGs.size > 0) {
-      throw Error(
-        `No JPEG found for expected object file(s) ${JSON.stringify([
-          ...missingTestJPEGs,
-        ]).slice(1, -1)}`
-      )
-    }
-
-    // Throw if there are existing JPEG image data files but no JPEG
-    const missingTestJPEGs2 = difference(expectedJPEGImageData, testJPEGs)
-    if (missingTestJPEGs2.size > 0) {
-      throw Error(
-        `No JPEG found for expected image data file(s) ${JSON.stringify([
-          ...missingTestJPEGs2,
-        ]).slice(1, -1)}`
-      )
-    }
-
-    // Throw if there is no corresponding JPEG for README row
-    const missingTestJPEGs3 = difference(
-      new Set(testInfo.map(({ name }) => name)),
-      testJPEGs
-    )
-    if (missingTestJPEGs3.size > 0) {
-      throw Error(
-        `No JPEG found for README image file(s) ${JSON.stringify([
-          ...missingTestJPEGs3,
-        ]).slice(1, -1)}`
-      )
+    // Remove expected image data files without test image
+    for (const fileName of difference(expectedJPEGImageData, testJPEGs)) {
+      unlinkSync(`${imageDir}/${fileName}.png`)
     }
 
     const jpegNames = testInfo

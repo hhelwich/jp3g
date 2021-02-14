@@ -1,5 +1,6 @@
-import { DHT, DQT, EOI, HuffmanTree, JPEG, SOF, SOS, zigZag } from './jpeg'
+import { DHT, DQT, DRI, EOI, HuffmanTree, JPEG, SOF, SOS, zigZag } from './jpeg'
 import { invDctQuantizedScaled } from './dctQuantizedScaled.decode'
+import { throwUnsupported } from './error'
 
 const { min, max, ceil, round } = Math
 
@@ -68,6 +69,8 @@ export const decodeFrame = (
         height: number
       }
     | undefined
+  // The number of MCUs between restart markers
+  let restartInterval = 0
   segmentLoop: for (const segment of jpeg) {
     switch (segment.type) {
       case DHT:
@@ -81,13 +84,19 @@ export const decodeFrame = (
         }
         break
       case SOF: {
+        if (segment.frameType === 2) {
+          throwUnsupported('progressive JPEG')
+        }
+        if (segment.frameType > 8) {
+          throwUnsupported('arithmetic coding')
+        }
         if (
           segment.frameType < 0 ||
           segment.frameType > 1 ||
           segment.precision !== 8
         ) {
           // Only sequential DCT frames with 8-bit samples are supported
-          throw Error('Not 8-bit sequential')
+          throwUnsupported('frame type')
         }
         const frameComponents: SOF['components'] = []
         for (const component of segment.components) {
@@ -104,6 +113,10 @@ export const decodeFrame = (
         }
         break
       }
+      case DRI: {
+        restartInterval = segment.ri
+        break
+      }
       case SOS: {
         if (!frame) {
           throw Error('Missing frame')
@@ -116,7 +129,7 @@ export const decodeFrame = (
         } = frame
         const { components } = segment
         if (components.length !== 3) {
-          throw Error('Unsupported color space')
+          throwUnsupported('color space')
         }
         let minH = 5
         let maxH = 0
@@ -143,7 +156,10 @@ export const decodeFrame = (
         //
         const [huffmanTablesDC, huffmanTablesAC] = huffmanTables
         const qCoeffs = new Int16Array(64)
-        const decodeQCoeffs = createDecodeQCoeffs(segment.data, qCoeffs)
+        const [decodeQCoeffs, skipToNextByte] = createDecodeQCoeffs(
+          segment.data,
+          qCoeffs
+        )
         const componentCount = components.length
         const lastDcs = new Int16Array(componentCount)
         /*
@@ -170,6 +186,7 @@ export const decodeFrame = (
           ),
           data
         )
+        let restartCounter = restartInterval
         for (let mcuRow = 0; mcuRow < mcuRows; mcuRow += 1) {
           let yCbCrOffset = 0
           for (let mcuColumn = 0; mcuColumn < mcuColumns; mcuColumn += 1) {
@@ -192,6 +209,13 @@ export const decodeFrame = (
                   yCbCrOffset += decDataUnitSize
                 }
               }
+            }
+            if (--restartCounter === 0) {
+              for (let i = 0; i < componentCount; i += 1) {
+                lastDcs[i] = 0
+              }
+              restartCounter = restartInterval
+              skipToNextByte()
             }
           }
           yCbCr2Rgb()
@@ -289,14 +313,16 @@ const nextYCbCr2Rgb = (
 // 4:2:2 (2x1,1x1,1x1) => Data unit 8x16 (Y), 16x16 (Cb, Cr) pixels
 // 4:2:0 (2x2,1x1,1x1) => Data unit 8x8 (Y), 16x16 (Cb, Cr) pixels
 
-export const createNextBit = (data: Uint8Array) => {
+export const createNextBit = (
+  data: Uint8Array
+): [nextBit: () => number, skipToNextByte: () => void] => {
   // The Position of the next byte in the data
   let offset = 0
   // The current data byte
   let currentByte: number
   // Position of the next bit in the current byte
   let byteOffset = -1
-  return () => {
+  const nextBit = () => {
     // If current byte is read => get next byte
     if (byteOffset < 0) {
       currentByte = data[offset++]
@@ -304,19 +330,31 @@ export const createNextBit = (data: Uint8Array) => {
       // The value ff (rarely occurs) is coded as ff00 to make searching for
       // markers easy. So the next 0-byte is ignored in this case.
       if (currentByte === 0xff && data[offset++] !== 0) {
-        throw Error('Unexpected marker in compressed data')
+        throwUnsupported('marker in compressed data')
       }
     }
     // Return current bit
     return (currentByte >> byteOffset--) & 1
   }
+  const skipToNextByte = () => {
+    offset += byteOffset < 7 ? 2 : 1
+    byteOffset = -1
+  }
+  return [nextBit, skipToNextByte]
 }
 
 export const createDecodeQCoeffs = (
   data: Uint8Array,
   outQCoeffs: Int16Array
-) => {
-  const nextBit = createNextBit(data)
+): [
+  decodeQCoeffs: (
+    lastDc: number,
+    huffmanTreeDC: HuffmanTree,
+    huffmanTreeAC: HuffmanTree
+  ) => void,
+  skipToNextByte: () => void
+] => {
+  const [nextBit, skipToNextByte] = createNextBit(data)
 
   /**
    * Receive function from JPEG spec.
@@ -346,7 +384,8 @@ export const createDecodeQCoeffs = (
     const additionalBits = nextBits(magnitude)
     return extend(additionalBits, magnitude)
   }
-  return (
+
+  const decodeQCoeffs = (
     lastDc: number,
     huffmanTreeDC: HuffmanTree,
     huffmanTreeAC: HuffmanTree
@@ -378,6 +417,7 @@ export const createDecodeQCoeffs = (
       }
     }
   }
+  return [decodeQCoeffs, skipToNextByte]
 }
 
 /**

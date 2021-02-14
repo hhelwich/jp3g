@@ -3,6 +3,8 @@ export const enum Marker {
   COM = 0xfe, // Comment
   DQT = 0xdb, // Define quantization tables
   DHT = 0xc4, // Define huffman table
+  DRI = 0xdd, // Define restart interval
+  DAC = 0xcc, // Define arithmetic coding conditions
   SOS = 0xda, // Start of scan
   EOI = 0xd9, // End of image
   SOF0 = 0xc0, // Start of frame, baseline
@@ -29,6 +31,8 @@ export const JFIF = 'JFIF'
 export const DHT = 'DHT'
 export const DQT = 'DQT'
 export const SOF = 'SOF'
+export const DRI = 'DRI'
+export const DAC = 'DAC'
 export const SOS = 'SOS'
 
 export const enum JFIFUnits {
@@ -128,6 +132,16 @@ export type SOF = {
   }[]
 }
 
+export type DRI = {
+  type: typeof DRI
+  ri: number
+}
+
+export type DAC = {
+  type: typeof DAC
+  data: Uint8Array
+}
+
 export type SOS = {
   type: typeof SOS
   data: Uint8Array
@@ -140,8 +154,20 @@ export type SOS = {
 
 export type EOI = {
   type: typeof EOI
+  data?: Uint8Array
 }
 
-export type Segment = SOI | JFIF | APP | COM | DQT | DHT | SOF | SOS | EOI
+export type Segment =
+  | SOI
+  | JFIF
+  | APP
+  | COM
+  | DQT
+  | DHT
+  | SOF
+  | DRI
+  | DAC
+  | SOS
+  | EOI
 
 export type JPEG = Segment[]

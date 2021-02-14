@@ -19,7 +19,7 @@ describe('decode scan', () => {
   })
   describe('nextBit', () => {
     it('returns data bits', () => {
-      const nextBit = createNextBit(
+      const [nextBit] = createNextBit(
         new Uint8Array([0b11001101, 0b10111000, 0b11101100, 0b01001011])
       )
       let bits = ''
@@ -29,7 +29,7 @@ describe('decode scan', () => {
       expect(bits).toBe('11001101101110001110110001001011')
     })
     it('reads ff00 as ff', () => {
-      const nextBit = createNextBit(
+      const [nextBit] = createNextBit(
         new Uint8Array([0b11001101, 0xff, 0, 0b11101100])
       )
       let bits = ''
@@ -39,17 +39,17 @@ describe('decode scan', () => {
       expect(bits).toBe('110011011111111111101100')
     })
     it('throws for non zero value following ff', () => {
-      const nextBit = createNextBit(
+      const [nextBit] = createNextBit(
         new Uint8Array([0b11001101, 0xff, 1, 0b11101100])
       )
       expect(() => {
         for (let i = 0; i < 24; i += 1) {
           nextBit()
         }
-      }).toThrow('Unexpected marker in compressed data')
+      }).toThrow('Unsupported marker in compressed data')
     })
     it('returns 0 if reading over end', () => {
-      const nextBit = createNextBit(new Uint8Array([0b11001101]))
+      const [nextBit] = createNextBit(new Uint8Array([0b11001101]))
       let bits = ''
       for (let i = 0; i < 16; i += 1) {
         bits += nextBit()
@@ -69,7 +69,7 @@ describe('decode scan', () => {
         return tables
       }, [] as HuffmanTree[][])
       const qCoeffs = new Int16Array(64)
-      const decodeCoeff = createDecodeQCoeffs(scan, qCoeffs)
+      const [decodeCoeff] = createDecodeQCoeffs(scan, qCoeffs)
       decodeCoeff(0, ht[0][0], ht[0][1])
       // prettier-ignore
       expect([...qCoeffs]).toEqual([

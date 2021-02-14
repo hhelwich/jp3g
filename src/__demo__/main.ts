@@ -147,13 +147,17 @@ $files.addEventListener('change', () => {
             if (imagesDone === imageCount) {
               const duration = Date.now() - startTime
               const minutes = Math.floor(duration / 60000)
-              const seconds = (duration / 1000) % 60
+              const seconds = Math.floor(duration / 1000) % 60
+              const milliSeconds = duration % 1000
               showMessage(
                 'Done in ' +
                   (minutes > 0
                     ? `${minutes} minute${minutes > 1 ? 's' : ''} `
                     : '') +
-                  `${seconds.toFixed(3)} seconds`
+                  (seconds > 0
+                    ? `${seconds} second${seconds > 1 ? 's' : ''} `
+                    : '') +
+                  `${milliSeconds} millisecond${milliSeconds !== 1 ? 's' : ''}`
               )
             }
           }

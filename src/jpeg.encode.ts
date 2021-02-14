@@ -11,6 +11,8 @@ import {
   JFIF,
   COM,
   DQT,
+  DRI,
+  DAC,
 } from './jpeg'
 import { getDhtLength, encodeDHT } from './huffmanTable.encode'
 import { encodeDQT, getDqtLength } from './quantizationTable.encode'
@@ -26,9 +28,11 @@ const getSosLength = (sos: SOS) =>
 const segmentLength = (segment: Segment): number => {
   switch (segment.type) {
     case SOI:
-    case EOI:
       return 2
+    case EOI:
+      return 2 + (segment.data ? segment.data.length : 0)
     case APP:
+    case DAC:
       return segment.data.length + 4
     case JFIF:
       return getJfifLength(segment)
@@ -40,6 +44,8 @@ const segmentLength = (segment: Segment): number => {
       return getSofLength(segment)
     case DHT:
       return getDhtLength(segment)
+    case DRI:
+      return 6
     case SOS:
       return getSosLength(segment)
   }
@@ -78,6 +84,21 @@ const encodeSOS = (segment: SOS, offset: number, buffer: Uint8Array) => {
   return offset + segment.data.length
 }
 
+const encodeDRI = (segment: DRI, offset: number, buffer: Uint8Array) => {
+  buffer[offset++] = 0xff
+  buffer[offset++] = Marker.DRI
+  offset = setUint16(buffer, offset, 4)
+  return setUint16(buffer, offset, segment.ri)
+}
+
+const encodeDAC = ({ data }: DAC, offset: number, buffer: Uint8Array) => {
+  buffer[offset++] = 0xff
+  buffer[offset++] = Marker.DAC
+  offset = setUint16(buffer, offset, data.length + 2)
+  buffer.set(data, offset)
+  return offset + data.length
+}
+
 const encodeSegment = (
   segment: Segment,
   offset: number,
@@ -106,11 +127,19 @@ const encodeSegment = (
       return encodeSOF(segment, offset, buffer)
     case DHT:
       return encodeDHT(segment, offset, buffer)
+    case DRI:
+      return encodeDRI(segment, offset, buffer)
+    case DAC:
+      return encodeDAC(segment, offset, buffer)
     case SOS:
       return encodeSOS(segment, offset, buffer)
     case EOI:
       buffer[offset++] = 0xff
       buffer[offset++] = Marker.EOI
+      const { data } = segment
+      if (data) {
+        buffer.set(data, offset)
+      }
       break
   }
   return offset

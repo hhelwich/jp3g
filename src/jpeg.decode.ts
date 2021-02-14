@@ -1,9 +1,10 @@
-import { SOF, JPEG, Marker, SOS, EOI, SOI } from './jpeg'
+import { SOF, JPEG, Marker, SOS, EOI, SOI, DRI, DAC } from './jpeg'
 import { decodeDHT } from './huffmanTable.decode'
 import { decodeDQT } from './quantizationTable.decode'
 import { getHiLow, getUint16 } from './common.decode'
 import { decodeAPP, isAppMarker, decodeCOM } from './app.decode'
 import { subarray } from './util'
+import { throwInvalidJPEG } from './error'
 
 const isRestartMarker = (marker: number) => 0xd0 <= marker && marker <= 0xd7
 
@@ -49,6 +50,16 @@ export const decodeSOF = (frameType: number, data: Uint8Array): SOF => {
   }
 }
 
+const decodeDRI = (data: Uint8Array): DRI => ({
+  type: 'DRI',
+  ri: getUint16(data, 0),
+})
+
+const decodeDAC = (data: Uint8Array): DAC => ({
+  type: 'DAC',
+  data,
+})
+
 /**
  * Converts the partially decoded diff value with given bit length to final
  * diff value. See figure F.12 in [1]
@@ -72,7 +83,7 @@ export const getDiff = (partialDiff: number, bitLength: number) =>
 export const decodeJpeg = (jpeg: Uint8Array): JPEG => {
   // JPEG must start with a SOI marker
   if (jpeg[0] !== 0xff || jpeg[1] !== Marker.SOI) {
-    throw Error('Missing SOI marker')
+    throwInvalidJPEG()
   }
 
   // The last marker in the file must be an EOI, and it must immediately follow
@@ -130,8 +141,11 @@ export const decodeJpeg = (jpeg: Uint8Array): JPEG => {
         }
         break
       } else if (byte === Marker.EOI) {
-        result.push({ type: EOI })
-        // TODO Add segment if data after EOI
+        const eoi: EOI = { type: EOI }
+        if (length - offset > 0) {
+          eoi.data = subarray(jpeg, offset, length)
+        }
+        result.push(eoi)
         return result
       } else {
         const segLength = getUint16(jpeg, offset)
@@ -146,6 +160,10 @@ export const decodeJpeg = (jpeg: Uint8Array): JPEG => {
           result.push(decodeDHT(d))
         } else if (byte === Marker.COM) {
           result.push(decodeCOM(d))
+        } else if (byte === Marker.DRI) {
+          result.push(decodeDRI(d))
+        } else if (byte === Marker.DAC) {
+          result.push(decodeDAC(d))
         } else if (isAppMarker(byte)) {
           result.push(decodeAPP(byte & 0xf, d))
         } else if (isMarkerSOF(byte)) {
