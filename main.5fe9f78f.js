@@ -268,8 +268,9 @@ $files.addEventListener('change', function () {
             if (imagesDone === imageCount) {
               var duration = Date.now() - startTime;
               var minutes = Math.floor(duration / 60000);
-              var seconds = duration / 1000 % 60;
-              showMessage('Done in ' + (minutes > 0 ? minutes + " minute" + (minutes > 1 ? 's' : '') + " " : '') + (seconds.toFixed(3) + " seconds"));
+              var seconds = Math.floor(duration / 1000) % 60;
+              var milliSeconds = duration % 1000;
+              showMessage('Done in ' + (minutes > 0 ? minutes + " minute" + (minutes > 1 ? 's' : '') + " " : '') + (seconds > 0 ? seconds + " second" + (seconds > 1 ? 's' : '') + " " : '') + (milliSeconds + " millisecond" + (milliSeconds !== 1 ? 's' : '')));
             }
           }
         });
