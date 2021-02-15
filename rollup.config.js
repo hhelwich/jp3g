@@ -15,6 +15,7 @@ const config = ({ minify }) => ({
   plugins: [
     json(),
     typescript({
+      downlevelIteration: false,
       exclude: ['**/__tests__/**/*.ts', '**/__demo__/**/*.ts'],
     }),
     {
