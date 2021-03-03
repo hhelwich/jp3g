@@ -60,7 +60,7 @@ You can use this `script` element that creates the global variable “`jp3g`”
 <script src="https://unpkg.com/jp3g@0.0.7/dist/jp3g.min.js"></script>
 ```
 
-or install with `npm `as described above and bundle yourself, for example with Webpack.
+or install with `npm` as described above and bundle yourself, for example with Webpack.
 
 Supported browsers: Chrome 20+, Firefox 27+, Safari 6+, Edge 40+, Opera 15+, Internet Explorer 11+
 
