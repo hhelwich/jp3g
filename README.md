@@ -18,10 +18,14 @@ Possible use cases for this library:
 - Use as a basis for an encoder with e.g. custom quantization
 - Use [test images](./src/__tests__/images#jpeg-test-images) to test another decoder
 
+## Demo
+
+You can test the decoder in this [Demo](hhelwich.github.io/jp3g/).
+
 ## Features
 
 - Read/Write JPEG structure
-- Decode sequential JPEGs
+- Decode sequential JPEG
 - Decode scaled down to 1/8
 - Use background threads in a browser
 - No dependencies
