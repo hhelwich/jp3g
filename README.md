@@ -20,7 +20,7 @@ Possible use cases for this library:
 
 ## Demo
 
-You can test the decoder in this [Demo](hhelwich.github.io/jp3g/).
+You can test the decoder in this [Demo](https://hhelwich.github.io/jp3g/).
 
 ## Features
 
