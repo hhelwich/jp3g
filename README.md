@@ -1,6 +1,6 @@
 # JP3G
 
-![npm](https://img.shields.io/npm/v/jp3g) ![npm bundle size](https://img.shields.io/bundlephobia/min/jp3g)
+[![npm](https://img.shields.io/npm/v/jp3g)](https://www.npmjs.com/package/jp3g/) [![npm bundle size](https://img.shields.io/bundlephobia/min/jp3g)](https://unpkg.com/jp3g/dist/jp3g.min.js)
 
 A JPEG decoder written from scratch in TypeScript for the browser and Node.js.
 
