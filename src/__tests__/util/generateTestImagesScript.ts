@@ -5,7 +5,6 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'fs'
-import { createCanvas } from 'canvas'
 import { decodeJpeg } from '../../jpeg.decode'
 import { decodeFrame, ImageDataArgs } from '../../frame.decode'
 import { distanceRgb } from './distanceRgb'
@@ -24,47 +23,72 @@ const originalImageDir = `${imageDir}/original`
 
 const referenceImageNameSuffix = '-ref'
 
-const { round } = Math
+const { abs, round, floor, atan2, sqrt, max, ceil, PI } = Math
+
+const mod = (a: number, b: number) => ((a % b) + b) % b
+
+/**
+ * Formula from wikipedia:
+ * https://en.wikipedia.org/wiki/HSL_and_HSV#HSL_to_RGB
+ */
+const hsl2rgb = (h: number, s: number, l: number) => {
+  h *= 360
+  const c = (1 - abs(2 * l - 1)) * s
+  const _h = h / 60
+  const x = c * (1 - abs(mod(_h, 2) - 1))
+  const rgb1 = [
+    [c, x, 0],
+    [x, c, 0],
+    [0, c, x],
+    [0, x, c],
+    [x, 0, c],
+    [c, 0, x],
+  ][floor(_h)]
+  const m = l - c / 2
+  return rgb1.map(x => round((x + m) * 255))
+}
 
 /**
  * Create test image data which has full red, green, blue (when square), black
  * and white pixels and fades between them.
  */
 const createTestImage = (width: number, height: number) => {
-  // Create canvas
-  const canvas = createCanvas(width, height)
-  const ctx = canvas.getContext('2d')
+  const data = new Uint8ClampedArray(width * height * 4)
   // Center of the image
   const cx = (width - 1) / 2
   const cy = (height - 1) / 2
   // Region which has black and white
-  const sx0 = Math.round(width / 4)
-  const sx1 = Math.round((width / 4) * 3)
-  const sy0 = Math.round(height / 4)
-  const sy1 = Math.round((height / 4) * 3)
+  const sx0 = round(width / 4)
+  const sx1 = round((width / 4) * 3)
+  const sy0 = round(height / 4)
+  const sy1 = round((height / 4) * 3)
   // Calculate pixels
-  for (let x = 0; x < width; x += 1) {
-    for (let y = 0; y < height; y += 1) {
-      const a = ((Math.atan2(y - cy, x - cx) / Math.PI) * 180 + 495) % 360
+  let i = 0
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const a = ((atan2(y - cy, x - cx) / PI) * 180 + 495) % 360
       // Stretch angle so red, green and blue are in the corners
       const h = a <= 180 ? (a / 3) * 4 : (a / 3) * 2 + 120
-      let l = 50
-      let s = 100
+      let l = 0.5
+      let s = 1
       // Fade lightness in the middle of image to have black and white pixel
       if (x >= sx0 && x < sx1 && y >= sy0 && y < sy1) {
         const nx = (x - sx0) / (sx1 - sx0 - 1)
         const ny = (y - sy0) / (sy1 - sy0 - 1)
-        l = Math.sqrt((nx + ny) ** 2 / 4) * 100
-        s = 50
+        l = sqrt((nx + ny) ** 2 / 4)
+        s = 0.5
       }
-      ctx.fillStyle = `hsl(${h},${s}%,${l}%)`
-      ctx.fillRect(x, y, 1, 1)
+      const [r, g, b] = hsl2rgb(h / 360, s, l)
+      data[i++] = r
+      data[i++] = g
+      data[i++] = b
+      data[i++] = 255
     }
   }
-  return ctx.getImageData(0, 0, width, height)
+  return { data, width, height }
 }
 
-const ceil2 = (x: number) => Math.ceil(x * 100) / 100
+const ceil2 = (x: number) => ceil(x * 100) / 100
 
 const writeImageData = ({ width, height, data }: ImageData, fileName: string) =>
   sharp(Buffer.from(data), { raw: { width, height, channels: 4 } })
@@ -144,9 +168,7 @@ const list2ts = (list: any, indent: string, width = 80): string =>
     .join('\n')
 
 const dqt2ts = (data: QuantizationTable, indent: string) => {
-  const maxLength = Math.max(
-    ...Array.from(data.map((s: number) => `${s}`.length))
-  )
+  const maxLength = max(...Array.from(data.map((s: number) => `${s}`.length)))
   let line = ''
   for (let row = 0; row < 8; row += 1) {
     line += indent + '  '
@@ -317,7 +339,7 @@ const verifyImageData = async (jpegFile: {
         referenceImage.data[i + 2],
       ]
       const distance = distanceRgb(rgb, rgbReference)
-      maxDistance = Math.max(maxDistance, distance)
+      maxDistance = max(maxDistance, distance)
       meanDistance += distance / count
     }
   }
