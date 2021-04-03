@@ -67,25 +67,27 @@ const $title = document.getElementById('title') as HTMLElement
 
 $title.innerHTML = `${document.title} (v${jp3g.version})`
 
-const $message = document.getElementById('message') as HTMLElement
+const $messages = document.getElementById('messages') as HTMLElement
 const messageSeconds = 2
-let messageCounter = 0
-const hideMessage = () => {
-  $message.style.display = 'none'
-}
+
 const showMessage = (message: string, seconds?: number) => {
+  const $message = document.createElement('div')
   $message.innerHTML = message
-  $message.style.display = 'block'
-  const id = ++messageCounter
+  const $previousMessage = $messages.lastChild as HTMLDivElement | null
+  if ($previousMessage?.innerHTML === message) {
+    $messages.removeChild($previousMessage)
+  }
+  $messages.appendChild($message)
+  const hideMessage = () => {
+    try {
+      $messages.removeChild($message)
+    } catch {}
+  }
+  $message.addEventListener('click', hideMessage)
   if (seconds != null) {
-    setTimeout(() => {
-      if (id === messageCounter) {
-        hideMessage()
-      }
-    }, seconds * 1000)
+    setTimeout(hideMessage, seconds * 1000)
   }
 }
-$message.addEventListener('click', hideMessage)
 
 const showWorkerLabel = () => {
   const count = +$workerCount.value
@@ -127,7 +129,7 @@ $files.addEventListener('change', () => {
   const id = ++filesAddCounter
   const files = $files.files ?? []
   $images.innerHTML = ''
-  hideMessage()
+  $messages.innerHTML = ''
   imagesDone = 0
   imageCount = files.length
   startTime = Date.now()
