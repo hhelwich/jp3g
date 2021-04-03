@@ -104,25 +104,25 @@ input[type='range'] {
   max-width: 100%;
 }
 
-#message {
+#messages {
   position: fixed;
   bottom: 0;
+  width: 100%;
+}
+
+#messages > div {
   color: #fff;
   background: #333;
   box-shadow: 0 3px 12px 0 rgba(0, 0, 0, 0.4);
   border-radius: 4px;
   padding: 16px;
   margin: 8px;
-  box-sizing: border-box;
-  width: calc(100% - 16px);
-  overflow: hidden;
-  display: none;
 }
 
 @media (min-width: 600px) {
-  #message {
-    width: auto;
-    left: 50%;
-    transform: translateX(-50%);
+  #messages > div {
+    display: table;
+    margin-left: auto;
+    margin-right: auto;
   }
 }

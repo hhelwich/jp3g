@@ -180,29 +180,32 @@ var $filesButton = document.getElementById('files');
 var $downScale = document.getElementById('down-scale');
 var $title = document.getElementById('title');
 $title.innerHTML = document.title + " (v" + jp3g.version + ")";
-var $message = document.getElementById('message');
+var $messages = document.getElementById('messages');
 var messageSeconds = 2;
-var messageCounter = 0;
-
-var hideMessage = function hideMessage() {
-  $message.style.display = 'none';
-};
 
 var showMessage = function showMessage(message, seconds) {
+  var $message = document.createElement('div');
   $message.innerHTML = message;
-  $message.style.display = 'block';
-  var id = ++messageCounter;
+  var $previousMessage = $messages.lastChild;
+
+  if (($previousMessage === null || $previousMessage === void 0 ? void 0 : $previousMessage.innerHTML) === message) {
+    $messages.removeChild($previousMessage);
+  }
+
+  $messages.appendChild($message);
+
+  var hideMessage = function hideMessage() {
+    try {
+      $messages.removeChild($message);
+    } catch (_a) {}
+  };
+
+  $message.addEventListener('click', hideMessage);
 
   if (seconds != null) {
-    setTimeout(function () {
-      if (id === messageCounter) {
-        hideMessage();
-      }
-    }, seconds * 1000);
+    setTimeout(hideMessage, seconds * 1000);
   }
 };
-
-$message.addEventListener('click', hideMessage);
 
 var showWorkerLabel = function showWorkerLabel() {
   var count = +$workerCount.value;
@@ -242,7 +245,7 @@ $files.addEventListener('change', function () {
   var id = ++filesAddCounter;
   var files = (_a = $files.files) !== null && _a !== void 0 ? _a : [];
   $images.innerHTML = '';
-  hideMessage();
+  $messages.innerHTML = '';
   imagesDone = 0;
   imageCount = files.length;
   startTime = Date.now();
